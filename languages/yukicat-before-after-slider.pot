@@ -1,0 +1,154 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024 YukiCat
+# This file is distributed under the same license as the YukiCat Before&After Slider plugin.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: YukiCat Before&After Slider 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/yukicat-before-after-slider\n"
+"POT-Creation-Date: 2024-07-19 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: yukicat-before-after-slider.php:150
+msgid "雪猫滑块"
+msgstr ""
+
+#: yukicat-before-after-slider.php:151
+msgid "创建漂亮的前后对比滑块效果"
+msgstr ""
+
+#: assets/js/block.js:15
+msgid "雪猫滑块"
+msgstr ""
+
+#: assets/js/block.js:16
+msgid "创建漂亮的前后对比滑块效果"
+msgstr ""
+
+#: templates/admin-list.php:3
+msgid "雪猫滑块管理"
+msgstr ""
+
+#: templates/admin-list.php:4
+msgid "新建滑块"
+msgstr ""
+
+#: templates/admin-list.php:9
+msgid "名称"
+msgstr ""
+
+#: templates/admin-list.php:10
+msgid "图片数量"
+msgstr ""
+
+#: templates/admin-list.php:11
+msgid "短代码"
+msgstr ""
+
+#: templates/admin-list.php:12
+msgid "创建时间"
+msgstr ""
+
+#: templates/admin-list.php:13
+msgid "操作"
+msgstr ""
+
+#: templates/admin-list.php:18
+msgid "暂无滑块，"
+msgstr ""
+
+#: templates/admin-list.php:18
+msgid "立即创建"
+msgstr ""
+
+#: templates/admin-list.php:28
+msgid "张图片"
+msgstr ""
+
+#: templates/admin-list.php:31
+msgid "复制"
+msgstr ""
+
+#: templates/admin-list.php:35
+msgid "编辑"
+msgstr ""
+
+#: templates/admin-list.php:36
+msgid "删除"
+msgstr ""
+
+#: templates/admin-new.php:3
+msgid "编辑滑块"
+msgstr ""
+
+#: templates/admin-new.php:3
+msgid "新建滑块"
+msgstr ""
+
+#: templates/admin-new.php:8
+msgid "滑块名称"
+msgstr ""
+
+#: templates/admin-new.php:12
+msgid "图片管理"
+msgstr ""
+
+#: templates/admin-new.php:17
+msgid "添加图片"
+msgstr ""
+
+#: templates/admin-new.php:18
+msgid "最多可添加8张图片，最少需要2张图片"
+msgstr ""
+
+#: templates/admin-new.php:22
+msgid "滑块高度"
+msgstr ""
+
+#: templates/admin-new.php:29
+msgid "显示标签"
+msgstr ""
+
+#: templates/admin-new.php:32
+msgid "在滑块上显示图片标签"
+msgstr ""
+
+#: templates/admin-new.php:37
+msgid "保存滑块"
+msgstr ""
+
+#: templates/admin-new.php:38
+msgid "返回列表"
+msgstr ""
+
+#: templates/admin-new.php:44
+msgid "预览"
+msgstr ""
+
+#. Plugin Name of the plugin
+msgid "雪猫（YukiCat）Before&After Slider"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://your-website.com"
+msgstr ""
+
+#. Description of the plugin
+msgid "一个强大的Before&After滑块插件，支持古腾堡编辑器，可展示最多8张图片的对比效果。"
+msgstr ""
+
+#. Author of the plugin
+msgid "YukiCat"
+msgstr ""
+
+#. Text Domain of the plugin
+msgid "yukicat-before-after-slider"
+msgstr ""

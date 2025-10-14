@@ -1,0 +1,483 @@
+/**
+ * 雪猫 Before&After Slider - 前端脚本
+ */
+
+(function($) {
+    'use strict';
+
+    class YukiCatSlider {
+        constructor(element) {
+            this.container = $(element);
+            this.isActive = false;
+            this.currentPosition = 50; // 百分比
+            this.currentIndex = 0;
+            this.nextIndex = 1;
+            this.layers = this.container.find('.yukicat-bas-layer');
+            this.handle = this.container.find('.yukicat-bas-handle');
+            this.handleButton = this.container.find('.yukicat-bas-handle-button');
+            this.progressBar = this.container.find('.yukicat-bas-progress-bar');
+            this.indicators = this.container.find('.yukicat-bas-indicator');
+            this.totalImages = this.layers.length;
+            this.animationFrame = null;
+            this.containerRect = null;
+            
+            // 调试信息
+            console.log('YukiCat Slider initialized:', {
+                totalImages: this.totalImages,
+                containerSize: this.container[0].getBoundingClientRect()
+            });
+            
+            this.init();
+        }
+
+        init() {
+            this.bindEvents();
+            this.setupKeyboard();
+            
+            // 强制设置初始状态
+            this.forceInitialState();
+            
+            this.updateSlider();
+            
+            // 添加初始动画提示
+            setTimeout(() => {
+                this.handleButton.addClass('active');
+                setTimeout(() => {
+                    this.handleButton.removeClass('active');
+                }, 3000);
+            }, 1000);
+        }
+
+        forceInitialState() {
+            // 强制设置正确的初始状态
+            if (this.totalImages >= 2) {
+                // 移除所有类，重新设置
+                this.layers.removeClass('active next');
+                
+                // 第一张图片设为active（顶层，显示左边）
+                this.layers.eq(0).addClass('active');
+                
+                // 第二张图片设为next（底层，显示右边）
+                this.layers.eq(1).addClass('next');
+                
+                // 立即应用裁剪 - 正确的方向：左边是第一张图片，右边是第二张图片
+                // active层（第一张图片）从右边裁剪，显示左侧部分
+                this.layers.eq(0).css('clip-path', `inset(0 ${100-this.currentPosition}% 0 0)`);
+                // next层（第二张图片）完整显示作为背景
+                this.layers.eq(1).css('clip-path', 'none');
+                
+                console.log('Force initial state applied:', {
+                    layer0: this.layers.eq(0).hasClass('active'),
+                    layer1: this.layers.eq(1).hasClass('next'),
+                    currentPosition: this.currentPosition
+                });
+            }
+        }
+
+        bindEvents() {
+            // 存储绑定的函数引用，以便解绑和重新绑定
+            this._boundStartDrag = this.startDrag.bind(this);
+            this._boundDrag = this.drag.bind(this);
+            this._boundEndDrag = this.endDrag.bind(this);
+            this._boundIndicatorClick = this.handleIndicatorClick.bind(this);
+            this._boundHandleResize = this.handleResize.bind(this);
+            
+            // 鼠标事件 - 绑定到容器和滑块
+            this.handle.on('mousedown', this._boundStartDrag);
+            this.container.on('mousedown', (e) => {
+                // 只有点击到容器本身或滑块时才开始拖拽
+                if (e.target === this.container[0] || $(e.target).closest('.yukicat-bas-handle').length > 0) {
+                    this.startDrag(e);
+                }
+            });
+            
+            // 使用命名空间防止重复绑定和冲突
+            $(document).off('mousemove.yukicat').on('mousemove.yukicat', this._boundDrag);
+            $(document).off('mouseup.yukicat').on('mouseup.yukicat', this._boundEndDrag);
+
+            // 触摸事件
+            this.handle.on('touchstart', this._boundStartDrag);
+            this.container.on('touchstart', (e) => {
+                if (e.target === this.container[0] || $(e.target).closest('.yukicat-bas-handle').length > 0) {
+                    this.startDrag(e);
+                }
+            });
+            
+            $(document).off('touchmove.yukicat').on('touchmove.yukicat', this._boundDrag);
+            $(document).off('touchend.yukicat').on('touchend.yukicat', this._boundEndDrag);
+
+            // 指示器点击
+            if (this.indicators && this.indicators.length) {
+                this.indicators.on('click', this._boundIndicatorClick);
+            }
+
+            // 窗口调整大小 - 使用节流函数防止过度触发
+            $(window).off('resize.yukicat').on('resize.yukicat', this._boundHandleResize);
+
+            // 防止图片拖拽和右键菜单
+            this.container.find('img').on('dragstart selectstart contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 防止整个容器的默认行为，但允许滑块交互
+            this.container.on('dragstart selectstart contextmenu', function(e) {
+                if (!$(e.target).closest('.yukicat-bas-handle').length) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+
+        setupKeyboard() {
+            this.container.attr('tabindex', '0');
+            this.container.on('keydown', this.handleKeyboard.bind(this));
+        }
+
+        startDrag(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.isActive = true;
+            this.container.addClass('dragging');
+            this.handleButton.addClass('active');
+            
+            // 立即获取容器尺寸，避免后续计算错误
+            this.containerRect = this.container[0].getBoundingClientRect();
+        }
+
+        drag(e) {
+            if (!this.isActive) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 使用缓存的容器尺寸，如果没有则重新获取
+            const rect = this.containerRect || this.container[0].getBoundingClientRect();
+            const clientX = e.type.includes('touch') ? e.originalEvent.touches[0].clientX : e.clientX;
+            const x = clientX - rect.left;
+            
+            // 计算位置百分比，立即更新
+            const newPosition = Math.max(0, Math.min(100, (x / rect.width) * 100));
+            
+            // 立即更新位置，不使用节流
+            this.currentPosition = newPosition;
+            this.updateSlider();
+            this.updateImageTransition();
+        }
+
+        endDrag() {
+            if (!this.isActive) return;
+            
+            this.isActive = false;
+            this.container.removeClass('dragging');
+            this.handleButton.removeClass('active');
+            
+            // 清除缓存的容器尺寸
+            this.containerRect = null;
+        }
+
+        updateSlider() {
+            // 更新滑块位置
+            this.handle.css('left', this.currentPosition + '%');
+            
+            // 更新进度条，确保与滑块分割条对齐
+            this.progressBar.css('width', this.currentPosition + '%');
+            
+            // 更新图片裁剪
+            this.updateImageClipping();
+        }
+
+        updateImageTransition() {
+            if (this.totalImages <= 2) return;
+            
+            // 计算应该显示的图片索引
+            const segmentSize = 100 / (this.totalImages - 1);
+            const newIndex = Math.floor(this.currentPosition / segmentSize);
+            const newNextIndex = Math.min(newIndex + 1, this.totalImages - 1);
+            
+            if (newIndex !== this.currentIndex || newNextIndex !== this.nextIndex) {
+                this.currentIndex = newIndex;
+                this.nextIndex = newNextIndex;
+                this.updateActiveImages();
+                this.updateIndicators();
+            }
+        }
+
+        updateActiveImages() {
+            this.layers.removeClass('active next');
+            
+            if (this.totalImages <= 2) {
+                // 两张图片模式，始终显示两张
+                this.layers.eq(0).addClass('active');
+                if (this.totalImages === 2) {
+                    this.layers.eq(1).addClass('next');
+                }
+            } else {
+                // 多张图片模式
+                this.layers.eq(this.currentIndex).addClass('active');
+                
+                // 显示下一张图片（如果存在）
+                if (this.nextIndex !== this.currentIndex) {
+                    this.layers.eq(this.nextIndex).addClass('next');
+                }
+            }
+        }
+
+        updateImageClipping() {
+            if (this.totalImages <= 2) {
+                // 传统的两张图片模式
+                // 第一张图片（顶层active）从右边裁剪，显示左边部分
+                this.layers.eq(0).css({
+                    'clip-path': `inset(0 ${100-this.currentPosition}% 0 0)`
+                });
+                
+                // 第二张图片（底层next）不裁剪，完全显示作为背景
+                if (this.totalImages === 2) {
+                    this.layers.eq(1).css('clip-path', 'none');
+                    
+                    // 调试信息
+                    console.log('Image clipping applied:', {
+                        position: this.currentPosition,
+                        layer0ClipPath: `inset(0 ${100-this.currentPosition}% 0 0)`,
+                        layer1ClipPath: 'none'
+                    });
+                }
+            } else {
+                // 多张图片模式
+                const segmentSize = 100 / (this.totalImages - 1);
+                const currentSegment = this.currentPosition / segmentSize;
+                const segmentProgress = (currentSegment - this.currentIndex) * 100;
+                
+                // 重置所有图片的裁剪
+                this.layers.css('clip-path', 'none');
+                
+                // 只对活动图片应用裁剪
+                if (this.nextIndex !== this.currentIndex) {
+                    // 当前活动图片从右边裁剪
+                    this.layers.eq(this.currentIndex).css({
+                        'clip-path': `inset(0 ${100 - segmentProgress}% 0 0)`
+                    });
+                }
+            }
+        }
+
+        updateIndicators() {
+            if (this.indicators.length === 0) return;
+            
+            this.indicators.removeClass('active');
+            this.indicators.eq(this.currentIndex).addClass('active');
+        }
+
+        handleIndicatorClick(e) {
+            const index = $(e.currentTarget).data('index');
+            this.jumpToImage(index);
+        }
+
+        jumpToImage(index) {
+            if (index < 0 || index >= this.totalImages) return;
+            
+            const segmentSize = 100 / (this.totalImages - 1);
+            this.currentPosition = index * segmentSize;
+            this.currentIndex = index;
+            this.nextIndex = Math.min(index + 1, this.totalImages - 1);
+            
+            this.updateSlider();
+            this.updateActiveImages();
+            this.updateIndicators();
+        }
+
+        handleKeyboard(e) {
+            const step = 5; // 每次移动5%
+            
+            switch(e.which) {
+                case 37: // 左箭头
+                    e.preventDefault();
+                    this.currentPosition = Math.max(0, this.currentPosition - step);
+                    this.updateSlider();
+                    this.updateImageTransition();
+                    break;
+                    
+                case 39: // 右箭头
+                    e.preventDefault();
+                    this.currentPosition = Math.min(100, this.currentPosition + step);
+                    this.updateSlider();
+                    this.updateImageTransition();
+                    break;
+                    
+                case 36: // Home键
+                    e.preventDefault();
+                    this.jumpToImage(0);
+                    break;
+                    
+                case 35: // End键
+                    e.preventDefault();
+                    this.jumpToImage(this.totalImages - 1);
+                    break;
+                    
+                case 32: // 空格键 - 重置到中间
+                    e.preventDefault();
+                    this.currentPosition = 50;
+                    this.updateSlider();
+                    this.updateImageTransition();
+                    break;
+            }
+        }
+
+        handleResize() {
+            // 响应式处理
+            this.updateSlider();
+        }
+
+        // 公共方法
+        setPosition(percentage) {
+            this.currentPosition = Math.max(0, Math.min(100, percentage));
+            this.updateSlider();
+            this.updateImageTransition();
+        }
+
+        reset() {
+            this.setPosition(50);
+        }
+
+        getCurrentPosition() {
+            return this.currentPosition;
+        }
+
+        getCurrentImageIndex() {
+            return this.currentIndex;
+        }
+
+        destroy() {
+            if (this.animationFrame) {
+                cancelAnimationFrame(this.animationFrame);
+            }
+            
+            // 清理所有事件监听器
+            this.handle.off();
+            this.container.off();
+            
+            if (this.indicators && this.indicators.length) {
+                this.indicators.off();
+            }
+            
+            // 使用命名空间清理文档级别的事件
+            $(document).off('mousemove.yukicat');
+            $(document).off('mouseup.yukicat');
+            $(document).off('touchmove.yukicat');
+            $(document).off('touchend.yukicat');
+            $(window).off('resize.yukicat');
+            
+            // 移除数据引用
+            this.container.removeData('yukicat-slider');
+        }
+    }
+
+    // 改进的自动初始化函数
+    function initSliders() {
+        $('.yukicat-bas-container').each(function() {
+            const $container = $(this);
+            
+            // 销毁现有实例以防重复初始化
+            const oldSlider = $container.data('yukicat-slider');
+            if (oldSlider && typeof oldSlider.destroy === 'function') {
+                oldSlider.destroy();
+            }
+            
+            // 创建新实例
+            const slider = new YukiCatSlider(this);
+            $container.data('yukicat-slider', slider);
+            console.log('Slider initialized:', $container.attr('data-slider-id'));
+        });
+    }
+
+    // 页面加载完成后初始化
+    $(document).ready(function() {
+        initSliders();
+        
+        // 使用递增的延迟检查，确保动态加载的内容也能被初始化
+        setTimeout(initSliders, 300);
+        setTimeout(initSliders, 800);
+        setTimeout(initSliders, 1500);
+    });
+
+    // 监听窗口加载完成事件
+    $(window).on('load', function() {
+        initSliders();
+    });
+    
+    // 特别针对Gutenberg编辑器的处理
+    if (window.wp && window.wp.data && window.wp.data.subscribe) {
+        let lastBlockCount = 0;
+        
+        // 监听区块变化
+        window.wp.data.subscribe(() => {
+            try {
+                const blocks = window.wp.data.select('core/block-editor').getBlocks();
+                if (blocks && blocks.length !== lastBlockCount) {
+                    lastBlockCount = blocks.length;
+                    // 区块数量变化时重新初始化
+                    setTimeout(initSliders, 100);
+                }
+            } catch (e) {
+                // 忽略错误
+            }
+        });
+    }
+
+    // 增强的MutationObserver，更好地处理动态添加的滑块
+    const observer = new MutationObserver(function(mutations) {
+        let slidersFound = false;
+        
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                // 检查是否有新增的滑块元素
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) {
+                        const $node = $(node);
+                        
+                        // 直接添加的滑块容器
+                        if ($node.hasClass('yukicat-bas-container')) {
+                            slidersFound = true;
+                        } 
+                        // 添加的元素包含滑块容器
+                        else if ($node.find('.yukicat-bas-container').length > 0) {
+                            slidersFound = true;
+                        }
+                    }
+                });
+                
+                // 检查属性变化（如添加class）
+                if (mutation.target && mutation.target.nodeType === 1) {
+                    const $target = $(mutation.target);
+                    if ($target.hasClass('yukicat-bas-container') || $target.find('.yukicat-bas-container').length > 0) {
+                        slidersFound = true;
+                    }
+                }
+            }
+        });
+        
+        // 如果找到滑块，延迟初始化（防止DOM未完全渲染）
+        if (slidersFound) {
+            setTimeout(initSliders, 50);
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // 全局API
+    window.YukiCatSlider = YukiCatSlider;
+
+    // jQuery插件形式
+    $.fn.yukicatSlider = function(options) {
+        return this.each(function() {
+            if (!$(this).data('yukicat-slider')) {
+                const slider = new YukiCatSlider(this);
+                $(this).data('yukicat-slider', slider);
+            }
+        });
+    };
+
+})(jQuery);
