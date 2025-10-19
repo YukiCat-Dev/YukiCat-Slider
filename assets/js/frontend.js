@@ -5,42 +5,30 @@
 (function() {
     'use strict';
     
-    // 使用我们隔离的jQuery实例，完全避免冲突
-    var isolatedJQuery = window.YukiCatSliderLib && window.YukiCatSliderLib.jQuery;
+    // 使用jQuery
+    var $ = window.jQuery || window.$;
     
-    // 备选方案：如果隔离器没有工作，尝试直接获取jQuery
-    if (!isolatedJQuery) {
-        console.warn('YukiCat Slider: Isolated jQuery not found. Trying fallback methods.');
-        isolatedJQuery = window.jQuery || window.$ || false;
-    }
-    
-    if (!isolatedJQuery) {
+    if (!$) {
         console.warn('YukiCat Slider: jQuery not found. Will retry when document is ready.');
         document.addEventListener('DOMContentLoaded', function() {
             // 最后尝试获取jQuery
-            isolatedJQuery = window.YukiCatSliderLib && window.YukiCatSliderLib.jQuery || window.jQuery || window.$ || false;
+            $ = window.jQuery || window.$;
             
-            if (!isolatedJQuery) {
+            if (!$) {
                 console.warn('YukiCat Slider: All jQuery detection methods failed. Slider will not initialize.');
                 return;
             } else {
                 // jQuery已找到，延迟初始化
-                initWithjQuery(isolatedJQuery);
+                initWithjQuery($);
             }
         });
         return;
     } else {
-        // 记录成功
-        if (window.YukiCatSliderLib) {
-            console.log('YukiCat Slider: Using isolated jQuery ' + window.YukiCatSliderLib.version);
-        }
         // jQuery可用，立即使用
-        initWithjQuery(isolatedJQuery);
+        initWithjQuery($);
     }
 
 function initWithjQuery($) {
-    // 创建闭包保护的jQuery实例
-    $ = $ || (window.YukiCatSliderLib && window.YukiCatSliderLib.jQuery);
 
     class YukiCatSlider {
         constructor(element, options) {
