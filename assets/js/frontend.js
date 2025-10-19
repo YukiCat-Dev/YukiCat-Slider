@@ -305,9 +305,12 @@ function initWithjQuery($) {
                 
                 // 使用命名空间防止重复绑定和冲突
                 try {
-                    $(document).off('mousemove.yukicat touchmove.yukicat')
+                    // Use shadowRoot context if available, otherwise use document
+                    const docContext = this.shadowRoot ? $(this.shadowRoot) : $(document);
+                    
+                    docContext.off('mousemove.yukicat touchmove.yukicat')
                               .on('mousemove.yukicat touchmove.yukicat', this._boundDrag);
-                    $(document).off('mouseup.yukicat touchend.yukicat')
+                    docContext.off('mouseup.yukicat touchend.yukicat')
                               .on('mouseup.yukicat touchend.yukicat', this._boundEndDrag);
                 } catch (documentBindError) {
                     // 静默处理文档事件绑定错误
@@ -720,10 +723,13 @@ function initWithjQuery($) {
                 
                 // 安全地清理事件监听器
                 try {
+                    // Use shadowRoot context if available, otherwise use document
+                    const docContext = this.shadowRoot ? $(this.shadowRoot) : $(document);
+                    
                     // 移除文档级别的事件监听器
-                    $(document).off('mousemove.yukicat touchmove.yukicat');
-                    $(document).off('mouseup.yukicat touchend.yukicat');
-                    $(document).off('keydown.yukicat');
+                    docContext.off('mousemove.yukicat touchmove.yukicat');
+                    docContext.off('mouseup.yukicat touchend.yukicat');
+                    docContext.off('keydown.yukicat');
                     
                     // 移除滑块把手的事件
                     if (this.handle && this.handle.length) {
@@ -775,11 +781,15 @@ function initWithjQuery($) {
                 
                 // 使用命名空间清理文档级别的事件
                 try {
-                    $(document).off('mousemove.yukicat');
-                    $(document).off('mouseup.yukicat');
-                    $(document).off('touchmove.yukicat');
-                    $(document).off('touchend.yukicat');
-                    $(window).off('resize.yukicat');
+                    // Use shadowRoot context if available, otherwise use document  
+                    const docContext = this.shadowRoot ? $(this.shadowRoot) : $(document);
+                    const winContext = this.shadowRoot ? $(this.shadowRoot) : $(window);
+                    
+                    docContext.off('mousemove.yukicat');
+                    docContext.off('mouseup.yukicat');
+                    docContext.off('touchmove.yukicat');
+                    docContext.off('touchend.yukicat');
+                    winContext.off('resize.yukicat');
                 } catch (e) {
                     // 静默处理文档事件清理错误
                 }

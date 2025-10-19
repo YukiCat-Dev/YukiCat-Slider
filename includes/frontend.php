@@ -39,11 +39,11 @@ class YukiCat_BAS_Frontend {
         // 标记不要压缩这些文件（对某些缓存插件有效）
         wp_style_add_data('yukicat-bas-frontend', 'do_not_minify', true);
         
-        // 加载 Web Component
-        wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array(), $nocache_ver, true);
+        // 加载 Web Component (depends on frontend.js for YukiCatSlider class)
+        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), $nocache_ver, true);
         
-        // 总是加载JS，因为可能有短代码或古腾堡区块
-        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery', 'yukicat-bas-web-component'), $nocache_ver, true);
+        // Web component must load after frontend.js
+        wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array('yukicat-bas-frontend'), $nocache_ver, true);
         
         // 加载初始化脚本
         wp_enqueue_script('yukicat-bas-init', YUKICAT_BAS_PLUGIN_URL . 'assets/js/init.js', array('yukicat-bas-frontend'), $nocache_ver, true);

@@ -101,7 +101,7 @@
         // Render the component
         render() {
             const orientationClass = this.config.orientation === 'vertical' ? ' yukicat-bas-vertical' : '';
-            const sliderId = 'yukicat-slider-' + Math.random().toString(36).substr(2, 9);
+            const sliderId = 'yukicat-slider-' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2));
             
             // Inject CSS into shadow DOM
             const styles = this.getStyles();
@@ -178,7 +178,8 @@
         initializeSlider() {
             // Wait for YukiCatSlider to be available
             const initSlider = () => {
-                if (window.YukiCatSlider) {
+                if (window.YukiCatSlider && window.jQuery) {
+                    const $ = window.jQuery;
                     const container = this.shadowRoot.querySelector('.yukicat-bas-container');
                     if (container) {
                         // Clean up old instance
@@ -186,8 +187,9 @@
                             this.sliderInstance.destroy();
                         }
                         
-                        // Create new instance (pass shadow root as context)
-                        this.sliderInstance = new window.YukiCatSlider(container, {
+                        // Create new instance with shadow DOM support
+                        // Pass the jQuery-wrapped container and shadow root
+                        this.sliderInstance = new window.YukiCatSlider($(container), {
                             shadowRoot: this.shadowRoot,
                             orientation: this.config.orientation,
                             autoSlide: this.config.autoSlide,
