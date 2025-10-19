@@ -39,13 +39,17 @@ class YukiCat_BAS_Frontend {
         // 标记不要压缩这些文件（对某些缓存插件有效）
         wp_style_add_data('yukicat-bas-frontend', 'do_not_minify', true);
         
+        // 加载 Web Component
+        wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array(), $nocache_ver, true);
+        
         // 总是加载JS，因为可能有短代码或古腾堡区块
-        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), $nocache_ver, true);
+        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery', 'yukicat-bas-web-component'), $nocache_ver, true);
         
         // 加载初始化脚本
         wp_enqueue_script('yukicat-bas-init', YUKICAT_BAS_PLUGIN_URL . 'assets/js/init.js', array('yukicat-bas-frontend'), $nocache_ver, true);
         
         // 标记不要压缩这些文件（对某些缓存插件有效）
+        wp_script_add_data('yukicat-bas-web-component', 'do_not_minify', true);
         wp_script_add_data('yukicat-bas-frontend', 'do_not_minify', true);
         wp_script_add_data('yukicat-bas-init', 'do_not_minify', true);
     }
@@ -58,13 +62,11 @@ class YukiCat_BAS_Frontend {
             return '<div class="yukicat-bas-placeholder">请添加至少2张图片</div>';
         }
         
-        $slider_id = 'yukicat-slider-' . uniqid();
         $height = intval($attributes['height']);
         $show_labels = $attributes['showLabels'];
         
         // 检查是否有方向设置
         $orientation = isset($attributes['orientation']) ? $attributes['orientation'] : 'horizontal';
-        $orientation_class = ($orientation === 'vertical') ? ' yukicat-bas-vertical' : '';
         
         // 检查是否有自动滑动设置
         $auto_slide = isset($attributes['autoSlide']) && $attributes['autoSlide'] ? 'true' : 'false';
@@ -78,73 +80,31 @@ class YukiCat_BAS_Frontend {
         // 检查是否点击移动
         $click_move = isset($attributes['clickToMove']) && $attributes['clickToMove'] !== false ? 'true' : 'false';
         
-        $output = '<div class="yukicat-bas-container' . $orientation_class . '" 
-                      style="height: ' . $height . 'px;" 
-                      data-slider-id="' . $slider_id . '"
-                      data-orientation="' . $orientation . '"
-                      data-auto-slide="' . $auto_slide . '"
-                      data-handle-only="' . $handle_only . '"
-                      data-hover-move="' . $hover_move . '"
-                      data-click-move="' . $click_move . '">';
+        // Use Web Component instead of div
+        $output = '<yukicat-slider 
+                      height="' . $height . '" 
+                      orientation="' . $orientation . '"
+                      auto-slide="' . $auto_slide . '"
+                      handle-only="' . $handle_only . '"
+                      hover-move="' . $hover_move . '"
+                      click-move="' . $click_move . '"
+                      show-labels="' . ($show_labels ? 'true' : 'false') . '">';
         
-        // 图片层
+        // Add images as light DOM content
         foreach ($attributes['images'] as $index => $image) {
             $label = isset($attributes['labels'][$index]) ? $attributes['labels'][$index] : '图片 ' . ($index + 1);
             
-            // 对于2张图片的情况，第一张设为active（顶层）和before，第二张设为next（底层）和after
-            // 对于多张图片的情况，只有第一张设为active
-            $layer_class = 'yukicat-bas-layer';
-            $layer_type = 'default';
-            
-            if (count($attributes['images']) >= 2) {
-                if ($index === 0) {
-                    $layer_class .= ' active yukicat-bas-before';
-                    $layer_type = 'before';
-                } else if ($index === 1) {
-                    $layer_class .= ' next yukicat-bas-after';
-                    $layer_type = 'after';
-                } else {
-                    $layer_type = 'extra-' . ($index - 1);
-                }
+            // Set default labels for first two images
+            if ($index === 0 && (empty($label) || $label === '图片 1')) {
+                $label = 'Before';
+            } else if ($index === 1 && (empty($label) || $label === '图片 2')) {
+                $label = 'After';
             }
             
-            $output .= '<div class="' . $layer_class . '" data-index="' . $index . '" data-layer-type="' . $layer_type . '">';
-            $output .= '<img src="' . esc_url($image['url']) . '" alt="' . esc_attr($label) . '">';
-            if ($show_labels) {
-                // 默认标签设置，如果是before/after，则使用相应的标签
-                $display_label = $label;
-                if ($index === 0 && (empty($label) || $label === '图片 1')) {
-                    $display_label = 'Before';
-                } else if ($index === 1 && (empty($label) || $label === '图片 2')) {
-                    $display_label = 'After';
-                }
-                
-                $output .= '<div class="yukicat-bas-label">' . esc_html($display_label) . '</div>';
-            }
-            $output .= '</div>';
+            $output .= '<img src="' . esc_url($image['url']) . '" alt="' . esc_attr($label) . '" data-label="' . esc_attr($label) . '">';
         }
         
-        // 滑块控制
-        $output .= '<div class="yukicat-bas-handle">';
-        $output .= '<div class="yukicat-bas-handle-button"></div>';
-        $output .= '</div>';
-        
-        // 进度指示器
-        $output .= '<div class="yukicat-bas-progress">';
-        $output .= '<div class="yukicat-bas-progress-bar"></div>';
-        $output .= '</div>';
-        
-        // 标签指示器
-        if ($show_labels && count($attributes['images']) > 2) {
-            $output .= '<div class="yukicat-bas-indicators">';
-            foreach ($attributes['labels'] as $index => $label) {
-                $active_class = $index === 0 ? ' active' : '';
-                $output .= '<span class="yukicat-bas-indicator' . $active_class . '" data-index="' . $index . '">' . esc_html($label) . '</span>';
-            }
-            $output .= '</div>';
-        }
-        
-        $output .= '</div>';
+        $output .= '</yukicat-slider>';
         
         return $output;
     }

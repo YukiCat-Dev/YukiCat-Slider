@@ -38,6 +38,12 @@ function initWithjQuery($) {
             
             this.container = $(element);
             
+            // Check if we're in a shadow root
+            this.shadowRoot = (options && options.shadowRoot) || null;
+            
+            // Use shadow root as document context if available
+            this.doc = this.shadowRoot || document;
+            
             // 安全检查：确保找到容器
             if (!this.container.length) {
                 return;
