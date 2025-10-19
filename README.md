@@ -167,7 +167,8 @@ GNU General Public License v3.0，符合 WordPress.org 插件目录的 [许可�
 - `@wordpress/blocks` - 区块注册
 - `@wordpress/element` - React 元素
 - `@wordpress/components` - UI 组件库
-- `@wordpress/editor` (deprecated) / `@wordpress/block-editor` - 编辑器组件
+- `@wordpress/editor` (**已弃用于 WordPress 5.2**) - 应迁移到 `@wordpress/block-editor`，参见 [迁移指南](https://developer.wordpress.org/block-editor/how-to-guides/backward-compatibility/deprecating-javascript-apis/)
+- `@wordpress/block-editor` - 编辑器组件（推荐用于新开发）
 - `@wordpress/i18n` - 国际化
 
 ##### `jquery-isolator.js` - jQuery 隔离器
@@ -184,15 +185,27 @@ GNU General Public License v3.0，符合 WordPress.org 插件目录的 [许可�
 - 重新初始化滑块
 - 处理 AJAX 加载内容
 
-##### `frontend.js.bak` - **冗余文件**
-**标记**: 🔴 冗余文件
+##### `frontend.js.bak` - **冗余文件** 🔴
+**状态**: 应当立即删除
 
-这是 `frontend.js` 的备份文件，未被任何文件引用。应当删除或移至版本控制之外。
+这是 `frontend.js` 的备份文件，未被任何文件引用。此类备份文件不应提交到版本控制系统中，应立即删除。版本控制系统（Git）本身已提供了文件历史记录功能。
 
-##### `frontend.js.new` - **冗余文件**
-**标记**: 🔴 冗余文件
+**建议操作**: 
+```bash
+git rm assets/js/frontend.js.bak
+git commit -m "Remove redundant backup file"
+```
 
-这是临时或测试文件，未被任何文件引用。应当删除或移至版本控制之外。
+##### `frontend.js.new` - **冗余文件** 🔴
+**状态**: 应当立即删除
+
+这是临时或测试文件，未被任何文件引用。临时文件不应提交到版本控制系统中，应立即删除。
+
+**建议操作**: 
+```bash
+git rm assets/js/frontend.js.new
+git commit -m "Remove redundant temporary file"
+```
 
 ### includes/ - PHP 包含文件目录
 **WordPress 文档参考**: [Best Practices for File Organization](https://developer.wordpress.org/plugins/plugin-basics/best-practices/#folder-structure)
@@ -375,16 +388,48 @@ CREATE TABLE {prefix}yukicat_bas_sliders (
 ## 需要改进的地方
 
 ### 冗余文件清理
-以下文件应该被删除或移至版本控制之外：
-- ❌ `assets/js/frontend.js.bak` - 备份文件，未被引用
-- ❌ `assets/js/frontend.js.new` - 临时文件，未被引用
 
-建议将这些文件添加到 `.gitignore` 文件中：
-```gitignore
-*.bak
-*.new
-*.tmp
-```
+⚠️ **重要**: 以下文件是冗余文件，应当立即从版本控制中删除：
+
+1. **删除现有冗余文件**:
+   ```bash
+   git rm assets/js/frontend.js.bak
+   git rm assets/js/frontend.js.new
+   git commit -m "Remove redundant backup and temporary files"
+   git push
+   ```
+
+冗余文件列表：
+- ❌ `assets/js/frontend.js.bak` - 备份文件，未被引用，Git 已提供版本历史
+- ❌ `assets/js/frontend.js.new` - 临时文件，未被引用，不应提交到仓库
+
+2. **创建 `.gitignore` 文件防止未来误提交**:
+   
+   在项目根目录创建 `.gitignore` 文件，添加以下规则：
+   ```gitignore
+   # 备份文件
+   *.bak
+   *.backup
+   
+   # 临时文件
+   *.new
+   *.tmp
+   *.temp
+   
+   # 编辑器文件
+   .DS_Store
+   Thumbs.db
+   *.swp
+   *.swo
+   *~
+   
+   # IDE 文件
+   .idea/
+   .vscode/
+   *.sublime-*
+   ```
+
+这样可以防止将来误将类似文件提交到版本控制系统中。
 
 ### 建议的改进
 1. **添加单元测试**: 使用 [PHPUnit for WordPress](https://developer.wordpress.org/plugins/testing/automated-testing/)
