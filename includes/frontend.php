@@ -1,0 +1,258 @@
+<?php
+/**
+ * Frontend functionality for YukiCat Before&After Slider
+ */
+
+// 防止直接访问
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * 前端功能类
+ */
+class YukiCat_BAS_Frontend {
+    
+    public function __construct() {
+        // 前端脚本
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_scripts'));
+        
+        // 短代码支持
+        add_shortcode('yukicat_slider', array($this, 'shortcode_handler'));
+    }
+    
+    /**
+     * 加载前端脚本
+     */
+    public function enqueue_frontend_scripts() {
+        // 添加随机版本号防止缓存问题
+        $nocache_ver = YUKICAT_BAS_VERSION . '.' . mt_rand(1000, 9999);
+        
+        // 移除可能的全局缓存设置
+        if (!defined('DONOTCACHEPAGE')) {
+            define('DONOTCACHEPAGE', true);
+        }
+        
+        // 总是加载CSS，使用随机版本号防止缓存
+        wp_enqueue_style('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/css/frontend.css', array(), $nocache_ver);
+        
+        // 标记不要压缩这些文件（对某些缓存插件有效）
+        wp_style_add_data('yukicat-bas-frontend', 'do_not_minify', true);
+        
+        // 总是加载JS，因为可能有短代码或古腾堡区块
+        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), $nocache_ver, true);
+        
+        // 标记不要压缩这些文件（对某些缓存插件有效）
+        wp_script_add_data('yukicat-bas-frontend', 'do_not_minify', true);
+        
+        // 添加增强版内联脚本确保初始化（提高与其他主题和插件的兼容性）
+        wp_add_inline_script('yukicat-bas-frontend', '
+            // 确保在DOM准备好后初始化滑块
+            document.addEventListener("DOMContentLoaded", function() {
+                // 尝试使用WordPress的jQuery
+                var $ = window.jQuery || window.$ || false;
+                
+                // 如果jQuery可用，初始化所有滑块
+                if ($) {
+                    // 封装初始化功能
+                    function initAllSliders() {
+                        try {
+                            $(".yukicat-bas-container").each(function() {
+                                if (!$(this).data("yukicat-slider") && window.YukiCatSlider) {
+                                    var slider = new window.YukiCatSlider(this);
+                                    $(this).data("yukicat-slider", slider);
+                                }
+                            });
+                        } catch(e) {
+                            // 静默处理错误
+                        }
+                    }
+                    
+                    // 初始初始化
+                    initAllSliders();
+                    
+                    // 在页面加载完成后再次初始化（捕获延迟加载的图片）
+                    $(window).on("load", initAllSliders);
+                    
+                    // 处理AJAX加载和动态内容
+                    if (window.MutationObserver) {
+                        var observer = new MutationObserver(function(mutations) {
+                            var hasNewContent = false;
+                            
+                            // 检查是否有新内容添加
+                            mutations.forEach(function(mutation) {
+                                if (mutation.addedNodes.length) {
+                                    hasNewContent = true;
+                                }
+                            });
+                            
+                            // 只有在添加了新节点时才重新初始化
+                            if (hasNewContent) {
+                                initAllSliders();
+                            }
+                        });
+                        
+                        // 观察整个文档树变化
+                        observer.observe(document.body, { childList: true, subtree: true });
+                    }
+                    
+                    // 针对某些主题的特殊事件
+                    $(document).on("post-load updated_checkout updated_cart_totals after_ajax_form_submit rendered_block", initAllSliders);
+                }
+            });
+        ');
+    }
+    
+    /**
+     * 渲染区块
+     */
+    public function render_block($attributes) {
+        if (empty($attributes['images']) || count($attributes['images']) < 2) {
+            return '<div class="yukicat-bas-placeholder">请添加至少2张图片</div>';
+        }
+        
+        $slider_id = 'yukicat-slider-' . uniqid();
+        $height = intval($attributes['height']);
+        $show_labels = $attributes['showLabels'];
+        
+        // 检查是否有方向设置
+        $orientation = isset($attributes['orientation']) ? $attributes['orientation'] : 'horizontal';
+        $orientation_class = ($orientation === 'vertical') ? ' yukicat-bas-vertical' : '';
+        
+        // 检查是否有自动滑动设置
+        $auto_slide = isset($attributes['autoSlide']) && $attributes['autoSlide'] ? 'true' : 'false';
+        
+        // 检查是否仅通过手柄移动
+        $handle_only = isset($attributes['moveWithHandleOnly']) && $attributes['moveWithHandleOnly'] ? 'true' : 'false';
+        
+        // 检查是否鼠标悬停移动
+        $hover_move = isset($attributes['moveSliderOnHover']) && $attributes['moveSliderOnHover'] ? 'true' : 'false';
+        
+        // 检查是否点击移动
+        $click_move = isset($attributes['clickToMove']) && $attributes['clickToMove'] !== false ? 'true' : 'false';
+        
+        $output = '<div class="yukicat-bas-container' . $orientation_class . '" 
+                      style="height: ' . $height . 'px;" 
+                      data-slider-id="' . $slider_id . '"
+                      data-orientation="' . $orientation . '"
+                      data-auto-slide="' . $auto_slide . '"
+                      data-handle-only="' . $handle_only . '"
+                      data-hover-move="' . $hover_move . '"
+                      data-click-move="' . $click_move . '">';
+        
+        // 图片层
+        foreach ($attributes['images'] as $index => $image) {
+            $label = isset($attributes['labels'][$index]) ? $attributes['labels'][$index] : '图片 ' . ($index + 1);
+            
+            // 对于2张图片的情况，第一张设为active（顶层）和before，第二张设为next（底层）和after
+            // 对于多张图片的情况，只有第一张设为active
+            $layer_class = 'yukicat-bas-layer';
+            $layer_type = 'default';
+            
+            if (count($attributes['images']) >= 2) {
+                if ($index === 0) {
+                    $layer_class .= ' active yukicat-bas-before';
+                    $layer_type = 'before';
+                } else if ($index === 1) {
+                    $layer_class .= ' next yukicat-bas-after';
+                    $layer_type = 'after';
+                } else {
+                    $layer_type = 'extra-' . ($index - 1);
+                }
+            }
+            
+            $output .= '<div class="' . $layer_class . '" data-index="' . $index . '" data-layer-type="' . $layer_type . '">';
+            $output .= '<img src="' . esc_url($image['url']) . '" alt="' . esc_attr($label) . '">';
+            if ($show_labels) {
+                // 默认标签设置，如果是before/after，则使用相应的标签
+                $display_label = $label;
+                if ($index === 0 && (empty($label) || $label === '图片 1')) {
+                    $display_label = 'Before';
+                } else if ($index === 1 && (empty($label) || $label === '图片 2')) {
+                    $display_label = 'After';
+                }
+                
+                $output .= '<div class="yukicat-bas-label">' . esc_html($display_label) . '</div>';
+            }
+            $output .= '</div>';
+        }
+        
+        // 滑块控制
+        $output .= '<div class="yukicat-bas-handle">';
+        $output .= '<div class="yukicat-bas-handle-button"></div>';
+        $output .= '</div>';
+        
+        // 进度指示器
+        $output .= '<div class="yukicat-bas-progress">';
+        $output .= '<div class="yukicat-bas-progress-bar"></div>';
+        $output .= '</div>';
+        
+        // 标签指示器
+        if ($show_labels && count($attributes['images']) > 2) {
+            $output .= '<div class="yukicat-bas-indicators">';
+            foreach ($attributes['labels'] as $index => $label) {
+                $active_class = $index === 0 ? ' active' : '';
+                $output .= '<span class="yukicat-bas-indicator' . $active_class . '" data-index="' . $index . '">' . esc_html($label) . '</span>';
+            }
+            $output .= '</div>';
+        }
+        
+        $output .= '</div>';
+        
+        return $output;
+    }
+    
+    /**
+     * 短代码处理
+     */
+    public function shortcode_handler($atts) {
+        $atts = shortcode_atts(array(
+            'id' => 0,
+            'height' => 400,
+            'show_labels' => 'true',
+            'orientation' => 'horizontal', // 新增方向参数
+            'auto_slide' => 'false',       // 新增自动滑动参数
+            'handle_only' => 'false',      // 新增仅手柄移动参数 
+            'hover_move' => 'false',       // 新增悬停移动参数
+            'click_move' => 'true'         // 新增点击移动参数
+        ), $atts);
+        
+        if (!$atts['id']) {
+            return '<!-- 雪猫滑块：请指定滑块ID -->';
+        }
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'yukicat_bas_sliders';
+        
+        $slider = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $atts['id']));
+        
+        if (!$slider) {
+            return '<!-- 雪猫滑块：找不到指定的滑块 -->';
+        }
+        
+        $images = json_decode($slider->images, true);
+        $labels = json_decode($slider->labels, true);
+        $settings = json_decode($slider->settings, true);
+        
+        // 合并设置
+        $orientation = isset($settings['orientation']) ? $settings['orientation'] : $atts['orientation'];
+        $auto_slide = isset($settings['autoSlide']) ? $settings['autoSlide'] : ($atts['auto_slide'] === 'true');
+        $handle_only = isset($settings['moveWithHandleOnly']) ? $settings['moveWithHandleOnly'] : ($atts['handle_only'] === 'true');
+        $hover_move = isset($settings['moveSliderOnHover']) ? $settings['moveSliderOnHover'] : ($atts['hover_move'] === 'true');
+        $click_move = isset($settings['clickToMove']) ? $settings['clickToMove'] : ($atts['click_move'] === 'true');
+        
+        $block_atts = array(
+            'images' => $images,
+            'labels' => $labels,
+            'height' => intval($atts['height']),
+            'showLabels' => $atts['show_labels'] === 'true',
+            'orientation' => $orientation,
+            'autoSlide' => $auto_slide,
+            'moveWithHandleOnly' => $handle_only,
+            'moveSliderOnHover' => $hover_move,
+            'clickToMove' => $click_move
+        );
+        
+        return $this->render_block($block_atts);
+    }
+}
