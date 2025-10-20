@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YukiCat Slider - Frontend Test</title>
+    
+    <!-- Load jQuery with integrity check -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    
+    <!-- Load frontend CSS -->
+    <link rel="stylesheet" href="../assets/css/frontend.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+        }
+        
+        .test-section h2 {
+            color: #444;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YukiCat Slider - Frontend Test Page</h1>
+        <p class="description">This page is for testing the frontend JavaScript and CSS without WordPress</p>
+        
+        <!-- Test Section 1: Horizontal Slider with 2 images -->
+        <div class="test-section">
+            <h2>Test 1: Horizontal Slider (2 Images)</h2>
+            <div class="yukicat-bas-container" 
+                 style="height: 400px;" 
+                 data-slider-id="test-slider-1"
+                 data-orientation="horizontal"
+                 data-auto-slide="false"
+                 data-handle-only="false"
+                 data-hover-move="false"
+                 data-click-move="true">
+                
+                <div class="yukicat-bas-layer active yukicat-bas-before" data-index="0" data-layer-type="before">
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop" alt="Before">
+                    <div class="yukicat-bas-label">Before</div>
+                </div>
+                
+                <div class="yukicat-bas-layer next yukicat-bas-after" data-index="1" data-layer-type="after">
+                    <img src="https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=800&h=600&fit=crop" alt="After">
+                    <div class="yukicat-bas-label">After</div>
+                </div>
+                
+                <div class="yukicat-bas-handle">
+                    <div class="yukicat-bas-handle-button"></div>
+                </div>
+                
+                <div class="yukicat-bas-progress">
+                    <div class="yukicat-bas-progress-bar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Section 2: Vertical Slider -->
+        <div class="test-section">
+            <h2>Test 2: Vertical Slider (2 Images)</h2>
+            <div class="yukicat-bas-container yukicat-bas-vertical" 
+                 style="height: 500px;" 
+                 data-slider-id="test-slider-2"
+                 data-orientation="vertical"
+                 data-auto-slide="false"
+                 data-handle-only="false"
+                 data-hover-move="false"
+                 data-click-move="true">
+                
+                <div class="yukicat-bas-layer active yukicat-bas-before" data-index="0" data-layer-type="before">
+                    <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop" alt="Before">
+                    <div class="yukicat-bas-label">Before</div>
+                </div>
+                
+                <div class="yukicat-bas-layer next yukicat-bas-after" data-index="1" data-layer-type="after">
+                    <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop" alt="After">
+                    <div class="yukicat-bas-label">After</div>
+                </div>
+                
+                <div class="yukicat-bas-handle">
+                    <div class="yukicat-bas-handle-button"></div>
+                </div>
+                
+                <div class="yukicat-bas-progress">
+                    <div class="yukicat-bas-progress-bar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Section 3: Multiple Images Slider -->
+        <div class="test-section">
+            <h2>Test 3: Multiple Images Slider (4 Images)</h2>
+            <div class="yukicat-bas-container" 
+                 style="height: 400px;" 
+                 data-slider-id="test-slider-3"
+                 data-orientation="horizontal"
+                 data-auto-slide="false"
+                 data-handle-only="false"
+                 data-hover-move="false"
+                 data-click-move="true">
+                
+                <div class="yukicat-bas-layer active yukicat-bas-before" data-index="0" data-layer-type="before">
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop" alt="Image 1">
+                    <div class="yukicat-bas-label">Spring</div>
+                </div>
+                
+                <div class="yukicat-bas-layer next yukicat-bas-after" data-index="1" data-layer-type="after">
+                    <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop" alt="Image 2">
+                    <div class="yukicat-bas-label">Summer</div>
+                </div>
+                
+                <div class="yukicat-bas-layer" data-index="2" data-layer-type="extra-1">
+                    <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop" alt="Image 3">
+                    <div class="yukicat-bas-label">Autumn</div>
+                </div>
+                
+                <div class="yukicat-bas-layer" data-index="3" data-layer-type="extra-2">
+                    <img src="https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=800&h=600&fit=crop" alt="Image 4">
+                    <div class="yukicat-bas-label">Winter</div>
+                </div>
+                
+                <div class="yukicat-bas-handle">
+                    <div class="yukicat-bas-handle-button"></div>
+                </div>
+                
+                <div class="yukicat-bas-progress">
+                    <div class="yukicat-bas-progress-bar"></div>
+                </div>
+                
+                <div class="yukicat-bas-indicators">
+                    <span class="yukicat-bas-indicator active" data-index="0">Spring</span>
+                    <span class="yukicat-bas-indicator" data-index="1">Summer</span>
+                    <span class="yukicat-bas-indicator" data-index="2">Autumn</span>
+                    <span class="yukicat-bas-indicator" data-index="3">Winter</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load frontend JS -->
+    <script src="../assets/js/frontend.js"></script>
+    <script src="../assets/js/init.js"></script>
+</body>
+</html>

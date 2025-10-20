@@ -5,42 +5,30 @@
 (function() {
     'use strict';
     
-    // 使用我们隔离的jQuery实例，完全避免冲突
-    var isolatedJQuery = window.YukiCatSliderLib && window.YukiCatSliderLib.jQuery;
+    // 使用jQuery
+    var $ = window.jQuery || window.$;
     
-    // 备选方案：如果隔离器没有工作，尝试直接获取jQuery
-    if (!isolatedJQuery) {
-        console.warn('YukiCat Slider: Isolated jQuery not found. Trying fallback methods.');
-        isolatedJQuery = window.jQuery || window.$ || false;
-    }
-    
-    if (!isolatedJQuery) {
+    if (!$) {
         console.warn('YukiCat Slider: jQuery not found. Will retry when document is ready.');
         document.addEventListener('DOMContentLoaded', function() {
             // 最后尝试获取jQuery
-            isolatedJQuery = window.YukiCatSliderLib && window.YukiCatSliderLib.jQuery || window.jQuery || window.$ || false;
+            $ = window.jQuery || window.$;
             
-            if (!isolatedJQuery) {
+            if (!$) {
                 console.warn('YukiCat Slider: All jQuery detection methods failed. Slider will not initialize.');
                 return;
             } else {
                 // jQuery已找到，延迟初始化
-                initWithjQuery(isolatedJQuery);
+                initWithjQuery($);
             }
         });
         return;
     } else {
-        // 记录成功
-        if (window.YukiCatSliderLib) {
-            console.log('YukiCat Slider: Using isolated jQuery ' + window.YukiCatSliderLib.version);
-        }
         // jQuery可用，立即使用
-        initWithjQuery(isolatedJQuery);
+        initWithjQuery($);
     }
 
 function initWithjQuery($) {
-    // 创建闭包保护的jQuery实例
-    $ = $ || (window.YukiCatSliderLib && window.YukiCatSliderLib.jQuery);
 
     class YukiCatSlider {
         constructor(element, options) {
@@ -49,6 +37,12 @@ function initWithjQuery($) {
             }
             
             this.container = $(element);
+            
+            // Check if we're in a shadow root
+            this.shadowRoot = (options && options.shadowRoot) || null;
+            
+            // Use shadow root as document context if available
+            this.doc = this.shadowRoot || document;
             
             // 安全检查：确保找到容器
             if (!this.container.length) {
@@ -129,123 +123,97 @@ function initWithjQuery($) {
         }
 
         init() {
-            try {
-                // 检查是否在Gutenberg编辑器环境中
-                const isInEditor = window.wp && window.wp.blocks && 
-                                (window.wp.data && window.wp.data.select('core/editor') || 
-                                document.body.classList.contains('block-editor-page'));
-                
-                // 给所有图层添加正确的类名
-                if (this.layers && this.layers.length >= 2) {
-                    // 分配Before/After类到图层
-                    for(let i = 0; i < this.layers.length; i++) {
-                        try {
-                            const $layer = $(this.layers[i]);
-                            if (!$layer || !$layer.length) continue;
-                            
-                            // 清除可能存在的类
-                            $layer.removeClass('active next yukicat-bas-before yukicat-bas-after');
-                            
-                            if (i === 0) {
-                                $layer.addClass('yukicat-bas-before');
-                                $layer.addClass('active');
-                            } else if (i === 1) {
-                                $layer.addClass('yukicat-bas-after');
-                                $layer.addClass('next');
-                            } else {
-                                $layer.addClass('yukicat-bas-extra');
-                            }
-                            
-                            // 确保所有图层可见性正确
-                            $layer.css('opacity', i < 2 ? 1 : 0);
-                        } catch (layerError) {
-                            // 静默处理单个图层的错误
-                        }
+            // 检查是否在Gutenberg编辑器环境中
+            const isInEditor = window.wp && window.wp.blocks && 
+                            (window.wp.data && window.wp.data.select('core/editor') || 
+                            document.body.classList.contains('block-editor-page'));
+            
+            // 给所有图层添加正确的类名
+            if (this.layers && this.layers.length >= 2) {
+                // 分配Before/After类到图层
+                for(let i = 0; i < this.layers.length; i++) {
+                    const $layer = $(this.layers[i]);
+                    if (!$layer || !$layer.length) continue;
+                    
+                    // 清除可能存在的类
+                    $layer.removeClass('active next yukicat-bas-before yukicat-bas-after');
+                    
+                    if (i === 0) {
+                        $layer.addClass('yukicat-bas-before');
+                        $layer.addClass('active');
+                    } else if (i === 1) {
+                        $layer.addClass('yukicat-bas-after');
+                        $layer.addClass('next');
+                    } else {
+                        $layer.addClass('yukicat-bas-extra');
                     }
                     
-                    // 特殊处理：在Gutenberg编辑器中可能需要交换顺序
-                    if (isInEditor) {
-                        try {
-                            // 由于在编辑器环境中顺序可能会变，我们通过标签或其他方式确保正确的顺序
-                            const beforeLayer = this.layers.filter('.yukicat-bas-before').first();
-                            const afterLayer = this.layers.filter('.yukicat-bas-after').first();
+                    // 确保所有图层可见性正确
+                    $layer.css('opacity', i < 2 ? 1 : 0);
+                }
+                
+                // 特殊处理：在Gutenberg编辑器中可能需要交换顺序
+                if (isInEditor) {
+                    // 由于在编辑器环境中顺序可能会变，我们通过标签或其他方式确保正确的顺序
+                    const beforeLayer = this.layers.filter('.yukicat-bas-before').first();
+                    const afterLayer = this.layers.filter('.yukicat-bas-after').first();
+                    
+                    // 如果标记了但顺序错了，交换它们的DOM顺序
+                    if (beforeLayer.length && afterLayer.length && beforeLayer.index() > afterLayer.index()) {
+                        const layersContainer = beforeLayer.parent();
+                        if (layersContainer && layersContainer.length) {
+                            layersContainer.prepend(beforeLayer);
                             
-                            // 如果标记了但顺序错了，交换它们的DOM顺序
-                            if (beforeLayer.length && afterLayer.length && beforeLayer.index() > afterLayer.index()) {
-                                const layersContainer = beforeLayer.parent();
-                                if (layersContainer && layersContainer.length) {
-                                    layersContainer.prepend(beforeLayer);
-                                    
-                                    // 刷新layers引用和索引
-                                    this.layers = this.container.find('.yukicat-bas-layer');
-                                }
-                            }
-                        } catch (editorError) {
-                            // 静默处理编辑器环境中的错误
+                            // 刷新layers引用和索引
+                            this.layers = this.container.find('.yukicat-bas-layer');
                         }
                     }
                 }
+            }
+            
+            // 绑定事件和设置键盘
+            this.bindEvents();
+            this.setupKeyboard();
+            
+            // 设置正确的方向类
+            if (this.options && this.options.orientation === 'vertical') {
+                this.container.addClass('yukicat-bas-vertical');
+            }
+            
+            // 强制设置初始状态
+            this.forceInitialState();
+            
+            // 更新滑块位置
+            this.updateSlider();
+            
+            // 处理图片大小差异
+            if (typeof this.adjustImageSizes === 'function') {
+                this.adjustImageSizes();
+            }
+            
+            // 特殊处理Gutenberg编辑器环境
+            if (isInEditor) {
+                // 确保在编辑器中正确显示
+                this.container.addClass('yukicat-bas-in-editor');
                 
-                // 绑定事件和设置键盘
-                try {
-                    this.bindEvents();
-                    this.setupKeyboard();
-                } catch (eventsError) {
-                    // 静默处理事件绑定错误
-                }
-                
-                // 设置正确的方向类
-                if (this.options && this.options.orientation === 'vertical') {
-                    this.container.addClass('yukicat-bas-vertical');
-                }
-                
-                // 强制设置初始状态
-                try {
+                // 强制重新计算尺寸
+                setTimeout(() => {
+                    this.handleResize();
                     this.forceInitialState();
                     
-                    // 更新滑块位置
-                    this.updateSlider();
-                    
-                    // 处理图片大小差异
-                    this.adjustImageSizes();
-                } catch (stateError) {
-                    // 静默处理状态设置错误
-                }
-                
-                // 特殊处理Gutenberg编辑器环境
-                if (isInEditor) {
-                    // 确保在编辑器中正确显示
-                    this.container.addClass('yukicat-bas-in-editor');
-                    
-                    // 强制重新计算尺寸
+                    // 在编辑器中固定初始位置为50%
+                    this.setPosition(50);
+                }, 100);
+            }
+            
+            // 添加初始动画提示，非编辑器环境下显示
+            if (!isInEditor && this.handleButton && this.handleButton.length) {
+                setTimeout(() => {
+                    this.handleButton.addClass('active');
                     setTimeout(() => {
-                        try {
-                            this.handleResize();
-                            this.forceInitialState();
-                            
-                            // 在编辑器中固定初始位置为50%
-                            this.setPosition(50);
-                        } catch (editorResizeError) {
-                            // 静默处理编辑器环境中的重新计算错误
-                        }
-                    }, 100);
-                }
-                
-                // 添加初始动画提示，非编辑器环境下显示
-                if (!isInEditor && this.handleButton && this.handleButton.length) {
-                    setTimeout(() => {
-                        try {
-                            this.handleButton.addClass('active');
-                            setTimeout(() => {
-                                this.handleButton.removeClass('active');
-                            }, 3000);
-                        } catch (animationError) {
-                            // 静默处理动画错误
-                        }
-                    }, 1000);
-                }
-            } catch (initError) {
-                // 静默处理整个初始化过程中的错误
+                        this.handleButton.removeClass('active');
+                    }, 3000);
+                }, 1000);
             }
         }
 
@@ -272,126 +240,97 @@ function initWithjQuery($) {
         }
 
         bindEvents() {
-            try {
-                // 存储绑定的函数引用，以便解绑和重新绑定
-                this._boundStartDrag = this.startDrag.bind(this);
-                this._boundDrag = this.drag.bind(this);
-                this._boundEndDrag = this.endDrag.bind(this);
-                this._boundIndicatorClick = this.handleIndicatorClick.bind(this);
-                this._boundHandleResize = this.handleResize.bind(this);
-                this._boundHandleHover = this.handleHover ? this.handleHover.bind(this) : null;
-                this._boundHandleClick = this.handleClick ? this.handleClick.bind(this) : null;
+            // 存储绑定的函数引用，以便解绑和重新绑定
+            this._boundStartDrag = this.startDrag.bind(this);
+            this._boundDrag = this.drag.bind(this);
+            this._boundEndDrag = this.endDrag.bind(this);
+            this._boundIndicatorClick = this.handleIndicatorClick.bind(this);
+            this._boundHandleResize = this.handleResize.bind(this);
+            this._boundHandleHover = this.handleHover ? this.handleHover.bind(this) : null;
+            this._boundHandleClick = this.handleClick ? this.handleClick.bind(this) : null;
+            
+            // 添加命名空间到所有事件，便于清理
+            const namespace = '.yukicat-slider';
+            
+            // 使用Pointer Events替代Touch/Mouse Events
+            if (this.handle && this.handle.length) {
+                this.handle.off('pointerdown' + namespace)
+                         .on('pointerdown' + namespace, this._boundStartDrag);
+            }
+            
+            // 仅当不限制为只能拖动手柄时，允许点击容器任意位置拖动
+            if (this.container && this.container.length) {
+                this.container.off('pointerdown' + namespace)
+                             .on('pointerdown' + namespace, (e) => {
+                    // 只有点击到容器本身或滑块时才开始拖拽
+                    if (e.target === this.container[0] || $(e.target).closest('.yukicat-bas-handle').length > 0) {
+                        this.startDrag(e);
+                    }
+                });
+            }
+            
+            // 使用 shadowRoot context if available, otherwise use document
+            const docContext = $(document);
+            
+            docContext.off('pointermove.yukicat')
+                      .on('pointermove.yukicat', this._boundDrag);
+            docContext.off('pointerup.yukicat pointercancel.yukicat')
+                      .on('pointerup.yukicat pointercancel.yukicat', this._boundEndDrag);
+
+            // 指示器点击
+            if (this.indicators && this.indicators.length) {
+                this.indicators.off('click' + namespace).on('click' + namespace, this._boundIndicatorClick);
+            }
+
+            // 悬停时移动滑块
+            if (this._boundHandleHover && this.options && this.options.moveSliderOnHover && this.container && this.container.length) {
+                this.container.off('pointermove' + namespace).on('pointermove' + namespace, this._boundHandleHover);
+            }
+            
+            // 点击时移动滑块
+            if (this._boundHandleClick && this.options && this.options.clickToMove && this.container && this.container.length) {
+                this.container.off('click' + namespace).on('click' + namespace, this._boundHandleClick);
+            }
+            
+            // 自动滑动
+            if (this.options && this.options.autoSlide && typeof this.startAutoSlide === 'function') {
+                this.startAutoSlide();
                 
-                // 添加命名空间到所有事件，便于清理
-                const namespace = '.yukicat-slider';
-                
-                // 鼠标事件 - 绑定到容器和滑块
-                if (this.handle && this.handle.length) {
-                    this.handle.off('mousedown' + namespace + ' touchstart' + namespace)
-                             .on('mousedown' + namespace + ' touchstart' + namespace, this._boundStartDrag);
-                }
-                
-                // 仅当不限制为只能拖动手柄时，允许点击容器任意位置拖动
+                // 当鼠标悬停时停止自动滑动，移开时恢复
                 if (this.container && this.container.length) {
-                    this.container.off('mousedown' + namespace + ' touchstart' + namespace)
-                                 .on('mousedown' + namespace + ' touchstart' + namespace, (e) => {
-                        try {
-                            // 只有点击到容器本身或滑块时才开始拖拽
-                            if (e.target === this.container[0] || $(e.target).closest('.yukicat-bas-handle').length > 0) {
-                                if (e.type === 'touchstart') {
-                                    e.preventDefault(); // 防止触摸时的滚动
-                                }
-                                this.startDrag(e);
-                            }
-                        } catch (dragError) {
-                            // 静默处理拖拽启动错误
+                    this.container.off('pointerenter' + namespace).on('pointerenter' + namespace, () => {
+                        if (typeof this.stopAutoSlide === 'function') {
+                            this.stopAutoSlide();
+                        }
+                    });
+                    
+                    this.container.off('pointerleave' + namespace).on('pointerleave' + namespace, () => {
+                        if (this.options && this.options.autoSlide && typeof this.startAutoSlide === 'function') {
+                            this.startAutoSlide();
                         }
                     });
                 }
-                
-                // 使用命名空间防止重复绑定和冲突
-                try {
-                    $(document).off('mousemove.yukicat touchmove.yukicat')
-                              .on('mousemove.yukicat touchmove.yukicat', this._boundDrag);
-                    $(document).off('mouseup.yukicat touchend.yukicat')
-                              .on('mouseup.yukicat touchend.yukicat', this._boundEndDrag);
-                } catch (documentBindError) {
-                    // 静默处理文档事件绑定错误
-                }
+            }
 
-                // 指示器点击
-                if (this.indicators && this.indicators.length) {
-                    this.indicators.off('click' + namespace).on('click' + namespace, this._boundIndicatorClick);
-                }
+            // 窗口调整大小 - 使用节流函数防止过度触发
+            $(window).off('resize.yukicat').on('resize.yukicat', this._boundHandleResize);
 
-                // 悬停时移动滑块
-                if (this._boundHandleHover && this.options && this.options.moveSliderOnHover && this.container && this.container.length) {
-                    this.container.off('mousemove' + namespace).on('mousemove' + namespace, this._boundHandleHover);
-                }
+            // 防止图片拖拽和右键菜单
+            if (this.container && this.container.length) {
+                this.container.find('img').off('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace)
+                                   .on('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace, function(e) {
+                    e.preventDefault();
+                    return false;
+                });
                 
-                // 点击时移动滑块
-                if (this._boundHandleClick && this.options && this.options.clickToMove && this.container && this.container.length) {
-                    this.container.off('click' + namespace).on('click' + namespace, this._boundHandleClick);
-                }
-                
-                // 自动滑动
-                if (this.options && this.options.autoSlide && typeof this.startAutoSlide === 'function') {
-                    this.startAutoSlide();
-                    
-                    // 当鼠标悬停时停止自动滑动，移开时恢复
-                    if (this.container && this.container.length) {
-                        this.container.off('mouseenter' + namespace).on('mouseenter' + namespace, () => {
-                            try {
-                                if (typeof this.stopAutoSlide === 'function') {
-                                    this.stopAutoSlide();
-                                }
-                            } catch (autoSlideError) {
-                                // 静默处理自动滑动错误
-                            }
-                        });
-                        
-                        this.container.off('mouseleave' + namespace).on('mouseleave' + namespace, () => {
-                            try {
-                                if (this.options && this.options.autoSlide && typeof this.startAutoSlide === 'function') {
-                                    this.startAutoSlide();
-                                }
-                            } catch (autoSlideError) {
-                                // 静默处理自动滑动错误
-                            }
-                        });
+                // 防止整个容器的默认行为，但允许滑块交互
+                this.container.off('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace)
+                             .on('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace, function(e) {
+                    if (!$(e.target).closest('.yukicat-bas-handle').length) {
+                        e.preventDefault();
+                        return false;
                     }
-                }
-
-                // 窗口调整大小 - 使用节流函数防止过度触发
-                try {
-                    $(window).off('resize.yukicat').on('resize.yukicat', this._boundHandleResize);
-                } catch (resizeError) {
-                    // 静默处理窗口调整大小事件绑定错误
-                }
-
-                // 防止图片拖拽和右键菜单
-                try {
-                    if (this.container && this.container.length) {
-                        this.container.find('img').off('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace)
-                                           .on('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace, function(e) {
-                            e.preventDefault();
-                            return false;
-                        });
-                        
-                        // 防止整个容器的默认行为，但允许滑块交互
-                        this.container.off('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace)
-                                     .on('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace, function(e) {
-                            if (!$(e.target).closest('.yukicat-bas-handle').length) {
-                                e.preventDefault();
-                                return false;
-                            }
-                        });
-                    }
-                } catch (dragError) {
-                    // 静默处理图片拖拽防止错误
-                }
-            } catch (bindError) {
-                // 静默处理整个事件绑定过程中的错误
+                });
             }
         }
 
@@ -425,17 +364,9 @@ function initWithjQuery($) {
             this.container.addClass('dragging');
             this.handleButton.addClass('active');
             
-            // 保存起始点，用于计算拖动距离
-            if (e.type === 'touchstart' && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0]) {
-                this.dragStartX = e.originalEvent.touches[0].clientX;
-                this.dragStartY = e.originalEvent.touches[0].clientY;
-            } else if (e.touches && e.touches[0]) {
-                this.dragStartX = e.touches[0].clientX;
-                this.dragStartY = e.touches[0].clientY;
-            } else {
-                this.dragStartX = e.clientX;
-                this.dragStartY = e.clientY;
-            }
+            // 保存起始点，用于计算拖动距离 - 使用 Pointer Events
+            this.dragStartX = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
+            this.dragStartY = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
             
             // 立即获取容器尺寸，避免后续计算错误
             this.containerRect = this.container[0].getBoundingClientRect();
@@ -449,23 +380,9 @@ function initWithjQuery($) {
             }
             e.stopPropagation();
             
-            // 提取触摸/鼠标坐标，考虑不同浏览器和设备的兼容性
-            let clientX, clientY;
-            
-            if (e.type.includes('touch')) {
-                if (e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0]) {
-                    clientX = e.originalEvent.touches[0].clientX;
-                    clientY = e.originalEvent.touches[0].clientY;
-                } else if (e.touches && e.touches[0]) {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                } else {
-                    return; // 无效的触摸事件
-                }
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
+            // 使用 Pointer Events API
+            const clientX = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
+            const clientY = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
             
             // 使用缓存的容器尺寸，如果没有则重新获取
             const rect = this.containerRect || this.container[0].getBoundingClientRect();
@@ -505,48 +422,36 @@ function initWithjQuery($) {
         }
 
         updateSlider() {
-            try {
-                // 先检查必要的元素是否存在
-                if (!this.handle || !this.handle.length || !this.progressBar || !this.progressBar.length) {
-                    return;
-                }
-                
-                // 根据方向更新滑块位置
-                if (this.options && this.options.orientation === 'horizontal') {
-                    try {
-                        this.handle.css({
-                            'left': this.currentPosition + '%',
-                            'top': ''
-                        });
-                        // 更新进度条
-                        this.progressBar.css({
-                            'width': this.currentPosition + '%',
-                            'height': ''
-                        });
-                    } catch (horizontalError) {
-                        // 静默处理水平方向更新错误
-                    }
-                } else {
-                    try {
-                        this.handle.css({
-                            'top': this.currentPosition + '%',
-                            'left': ''
-                        });
-                        // 更新进度条
-                        this.progressBar.css({
-                            'height': this.currentPosition + '%',
-                            'width': ''
-                        });
-                    } catch (verticalError) {
-                        // 静默处理垂直方向更新错误
-                    }
-                }
-                
-                // 更新图片裁剪
-                this.updateImageClipping();
-            } catch (updateError) {
-                // 静默处理整个更新过程中的错误
+            // 先检查必要的元素是否存在
+            if (!this.handle || !this.handle.length || !this.progressBar || !this.progressBar.length) {
+                throw new Error('YukiCatSlider: Required elements (handle or progressBar) not found');
             }
+            
+            // 根据方向更新滑块位置
+            if (this.options && this.options.orientation === 'horizontal') {
+                this.handle.css({
+                    'left': this.currentPosition + '%',
+                    'top': ''
+                });
+                // 更新进度条
+                this.progressBar.css({
+                    'width': this.currentPosition + '%',
+                    'height': ''
+                });
+            } else {
+                this.handle.css({
+                    'top': this.currentPosition + '%',
+                    'left': ''
+                });
+                // 更新进度条
+                this.progressBar.css({
+                    'height': this.currentPosition + '%',
+                    'width': ''
+                });
+            }
+            
+            // 更新图片裁剪
+            this.updateImageClipping();
         }
 
         updateImageTransition() {
@@ -725,11 +630,12 @@ function initWithjQuery($) {
                 }
                 
                 // 安全地清理事件监听器
-                try {
-                    // 移除文档级别的事件监听器
-                    $(document).off('mousemove.yukicat touchmove.yukicat');
-                    $(document).off('mouseup.yukicat touchend.yukicat');
-                    $(document).off('keydown.yukicat');
+                // Use shadowRoot context if available, otherwise use document
+                
+                // 移除文档级别的事件监听器
+                docContext.off('pointermove.yukicat');
+                docContext.off('pointerup.yukicat pointercancel.yukicat');
+                docContext.off('keydown.yukicat');
                     
                     // 移除滑块把手的事件
                     if (this.handle && this.handle.length) {
@@ -740,9 +646,7 @@ function initWithjQuery($) {
                     if (this.handleButton && this.handleButton.length) {
                         this.handleButton.off('.yukicat-slider');
                     }
-                } catch (e) {
-                    // 静默处理移除事件的错误
-                }
+                 
                 
                 // 清理容器
                 try {
@@ -780,15 +684,14 @@ function initWithjQuery($) {
                 }
                 
                 // 使用命名空间清理文档级别的事件
-                try {
-                    $(document).off('mousemove.yukicat');
-                    $(document).off('mouseup.yukicat');
-                    $(document).off('touchmove.yukicat');
-                    $(document).off('touchend.yukicat');
-                    $(window).off('resize.yukicat');
-                } catch (e) {
-                    // 静默处理文档事件清理错误
-                }
+                // Use shadowRoot context if available, otherwise use document  
+                const docContext = $(document);
+                const winContext = $(window);
+                
+                docContext.off('pointermove.yukicat');
+                docContext.off('pointerup.yukicat');
+                docContext.off('pointercancel.yukicat');
+                winContext.off('resize.yukicat');
             } catch (destroyError) {
                 // 静默处理整个销毁过程中的错误
             }
