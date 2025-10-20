@@ -1,0 +1,42 @@
+import { defineConfig } from 'vite';
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
+
+export default defineConfig({
+  plugins: [
+    cssInjectedByJsPlugin()
+  ],
+  build: {
+    // Only build ES modules
+    lib: {
+      entry: {
+        'frontend': './src/frontend.js',
+        'web-component': './src/web-component.js',
+        'init': './src/init.js',
+        'admin': './src/admin.js'
+      },
+      formats: ['es'],
+      fileName: (format, entryName) => `${entryName}.js`
+    },
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false
+      }
+    },
+    // Output to assets directory
+    outDir: './assets/js',
+    emptyOutDir: false,
+    // Don't generate sourcemaps in production
+    sourcemap: false,
+    rollupOptions: {
+      // Externalize jQuery since it's provided by WordPress
+      external: ['jquery'],
+      output: {
+        globals: {
+          jquery: 'jQuery'
+        }
+      }
+    }
+  }
+});
