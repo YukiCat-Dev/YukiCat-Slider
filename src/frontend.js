@@ -270,7 +270,7 @@ function initWithjQuery($) {
             }
             
             // 使用 shadowRoot context if available, otherwise use document
-            const docContext = this.shadowRoot ? $(this.shadowRoot) : $(document);
+            const docContext = $(document);
             
             docContext.off('pointermove.yukicat')
                       .on('pointermove.yukicat', this._boundDrag);
@@ -631,7 +631,6 @@ function initWithjQuery($) {
                 
                 // 安全地清理事件监听器
                 // Use shadowRoot context if available, otherwise use document
-                const docContext = this.shadowRoot ? $(this.shadowRoot) : $(document);
                 
                 // 移除文档级别的事件监听器
                 docContext.off('pointermove.yukicat');
@@ -647,9 +646,7 @@ function initWithjQuery($) {
                     if (this.handleButton && this.handleButton.length) {
                         this.handleButton.off('.yukicat-slider');
                     }
-                } catch (e) {
-                    // 静默处理移除事件的错误
-                }
+                 
                 
                 // 清理容器
                 try {
@@ -688,8 +685,8 @@ function initWithjQuery($) {
                 
                 // 使用命名空间清理文档级别的事件
                 // Use shadowRoot context if available, otherwise use document  
-                const docContext = this.shadowRoot ? $(this.shadowRoot) : $(document);
-                const winContext = this.shadowRoot ? $(this.shadowRoot) : $(window);
+                const docContext = $(document);
+                const winContext = $(window);
                 
                 docContext.off('pointermove.yukicat');
                 docContext.off('pointerup.yukicat');

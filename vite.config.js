@@ -12,13 +12,14 @@ export default defineConfig({
         'frontend': './src/frontend.js',
         'web-component': './src/web-component.js',
         'init': './src/init.js',
-        'admin': './src/admin.js'
+        'admin': './src/admin.js',
+        'block': './src/block.js'
       },
       formats: ['es'],
       fileName: (format, entryName) => `${entryName}.js`
     },
     // Enable minification
-    minify: 'terser',
+    minify: true,
     terserOptions: {
       compress: {
         drop_console: false
