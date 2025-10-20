@@ -3,6 +3,8 @@
  * Frontend functionality for YukiCat Before&After Slider
  */
 
+namespace YukiCat\BeforeAfterSlider;
+
 // 防止直接访问
 if (!defined('ABSPATH')) {
     exit;
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
 /**
  * 前端功能类
  */
-class YukiCat_BAS_Frontend {
+class Frontend {
     
     public function __construct() {
         // 前端脚本

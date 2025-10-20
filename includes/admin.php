@@ -3,6 +3,8 @@
  * Admin functionality for YukiCat Before&After Slider
  */
 
+namespace YukiCat\BeforeAfterSlider;
+
 // 防止直接访问
 if (!defined('ABSPATH')) {
     exit;
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
 /**
  * 管理后台功能类
  */
-class YukiCat_BAS_Admin {
+class Admin {
     
     public function __construct() {
         // 管理菜单

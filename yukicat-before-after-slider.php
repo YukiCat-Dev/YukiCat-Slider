@@ -47,8 +47,8 @@ class YukiCat_Before_After_Slider {
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
         
         // 初始化管理后台和前端功能
-        $this->admin = new YukiCat_BAS_Admin();
-        $this->frontend = new YukiCat_BAS_Frontend();
+        $this->admin = new \YukiCat\BeforeAfterSlider\Admin();
+        $this->frontend = new \YukiCat\BeforeAfterSlider\Frontend();
     }
     
     /**
