@@ -197,68 +197,19 @@
             const height = parseInt($('#slider-height').val()) || 400;
             const showLabels = $('#show-labels').is(':checked');
 
-            let previewHTML = `<div class="yukicat-bas-container" style="height: ${height}px;">`;
+            // Use custom element instead of div
+            let previewHTML = `<yukicat-slider height="${height}" orientation="horizontal" show-labels="${showLabels}">`;
 
-            // 添加图片层
+            // Add images as light DOM content
             this.images.forEach((image, index) => {
                 const label = this.labels[index] || `图片 ${index + 1}`;
-                
-                // 对于2张图片的情况，第一张设为active（顶层），第二张设为next（底层）
-                // 对于多张图片的情况，只有第一张设为active
-                let activeClass = '';
-                if (this.images.length === 2) {
-                    activeClass = index === 0 ? ' active' : ' next';
-                } else {
-                    activeClass = index === 0 ? ' active' : '';
-                }
-                
-                previewHTML += `
-                    <div class="yukicat-bas-layer${activeClass}" data-index="${index}">
-                        <img src="${image.url}" alt="${label}" style="width: 100%; height: 100%; object-fit: cover;">
-                        ${showLabels ? `<div class="yukicat-bas-label">${label}</div>` : ''}
-                    </div>
-                `;
+                previewHTML += `<img src="${image.url}" alt="${label}" data-label="${label}">`;
             });
 
-            // 添加控制元素
-            previewHTML += `
-                <div class="yukicat-bas-handle">
-                    <div class="yukicat-bas-handle-button"></div>
-                </div>
-                <div class="yukicat-bas-progress">
-                    <div class="yukicat-bas-progress-bar"></div>
-                </div>
-            `;
-
-            // 添加指示器
-            if (showLabels && this.images.length > 2) {
-                previewHTML += '<div class="yukicat-bas-indicators">';
-                this.labels.forEach((label, index) => {
-                    const activeClass = index === 0 ? ' active' : '';
-                    previewHTML += `<span class="yukicat-bas-indicator${activeClass}" data-index="${index}">${label}</span>`;
-                });
-                previewHTML += '</div>';
-            }
-
-            previewHTML += '</div>';
+            previewHTML += '</yukicat-slider>';
 
             $('#slider-preview').html(previewHTML);
             $('#preview-container').show();
-
-            // 销毁之前的滑块实例
-            const existingSlider = $('#slider-preview .yukicat-bas-container').data('yukicat-slider');
-            if (existingSlider && existingSlider.destroy) {
-                existingSlider.destroy();
-            }
-
-            // 初始化预览滑块功能
-            setTimeout(() => {
-                const container = $('#slider-preview .yukicat-bas-container')[0];
-                if (container && window.YukiCatSlider) {
-                    const slider = new window.YukiCatSlider(container);
-                    $(container).data('yukicat-slider', slider);
-                }
-            }, 100);
         }
 
         saveSlider(e) {
