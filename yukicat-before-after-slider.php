@@ -24,9 +24,6 @@ if (!file_exists(YUKICAT_BAS_PLUGIN_PATH . 'includes')) {
     mkdir(YUKICAT_BAS_PLUGIN_PATH . 'includes');
 }
 
-// 加载防缓存机制
-require_once(YUKICAT_BAS_PLUGIN_PATH . 'includes/cache-buster.php');
-
 // 加载管理后台功能
 require_once(YUKICAT_BAS_PLUGIN_PATH . 'includes/admin.php');
 

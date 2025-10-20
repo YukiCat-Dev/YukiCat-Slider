@@ -25,33 +25,17 @@ class YukiCat_BAS_Frontend {
      * 加载前端脚本
      */
     public function enqueue_frontend_scripts() {
-        // 添加随机版本号防止缓存问题
-        $nocache_ver = YUKICAT_BAS_VERSION . '.' . mt_rand(1000, 9999);
-        
-        // 移除可能的全局缓存设置
-        if (!defined('DONOTCACHEPAGE')) {
-            define('DONOTCACHEPAGE', true);
-        }
-        
-        // 总是加载CSS，使用随机版本号防止缓存
-        wp_enqueue_style('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/css/frontend.css', array(), $nocache_ver);
-        
-        // 标记不要压缩这些文件（对某些缓存插件有效）
-        wp_style_add_data('yukicat-bas-frontend', 'do_not_minify', true);
+        // 总是加载CSS
+        wp_enqueue_style('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/css/frontend.css', array(), YUKICAT_BAS_VERSION);
         
         // 加载 Web Component (depends on frontend.js for YukiCatSlider class)
-        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), $nocache_ver, true);
+        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), YUKICAT_BAS_VERSION, true);
         
         // Web component must load after frontend.js
-        wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array('yukicat-bas-frontend'), $nocache_ver, true);
+        wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array('yukicat-bas-frontend'), YUKICAT_BAS_VERSION, true);
         
         // 加载初始化脚本
-        wp_enqueue_script('yukicat-bas-init', YUKICAT_BAS_PLUGIN_URL . 'assets/js/init.js', array('yukicat-bas-frontend'), $nocache_ver, true);
-        
-        // 标记不要压缩这些文件（对某些缓存插件有效）
-        wp_script_add_data('yukicat-bas-web-component', 'do_not_minify', true);
-        wp_script_add_data('yukicat-bas-frontend', 'do_not_minify', true);
-        wp_script_add_data('yukicat-bas-init', 'do_not_minify', true);
+        wp_enqueue_script('yukicat-bas-init', YUKICAT_BAS_PLUGIN_URL . 'assets/js/init.js', array('yukicat-bas-web-component'), YUKICAT_BAS_VERSION, true);
     }
     
     /**
