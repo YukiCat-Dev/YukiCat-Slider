@@ -27,8 +27,7 @@ export default defineConfig({
     // Output to assets directory
     outDir: './assets/js',
     emptyOutDir: false,
-    // Don't generate sourcemaps in production
-    sourcemap: false,
+    sourcemap: true,
     rollupOptions: {
       // Externalize jQuery since it's provided by WordPress
       external: ['jquery'],
