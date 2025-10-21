@@ -11,7 +11,6 @@ export default defineConfig({
       entry: {
         'frontend': './src/frontend.js',
         'web-component': './src/web-component.js',
-        'init': './src/init.js',
         'admin': './src/admin.js',
         'block': './src/block.js'
       },

@@ -858,4 +858,14 @@
     // 全局API
     window.YukiCatSlider = YukiCatSlider;
 
+    // WordPress特定事件钩子（当jQuery可用时）
+    // 这些是WordPress主题和插件常用的事件，用于处理AJAX内容加载
+    if (window.jQuery) {
+        const $ = window.jQuery;
+        // 监听WordPress和WooCommerce的动态内容事件
+        $(document).on('post-load updated_checkout updated_cart_totals after_ajax_form_submit rendered_block', function() {
+            initSliders();
+        });
+    }
+
 })();
