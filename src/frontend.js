@@ -1,34 +1,20 @@
 /**
- * 雪猫 Before&After Slider - 前端脚本
+ * 雪猫 Before&After Slider - 前端脚本 (无jQuery依赖)
  */
 
 (function() {
     'use strict';
     
-    // 使用jQuery
-    var $ = window.jQuery || window.$;
-    
-    if (!$) {
-        console.warn('YukiCat Slider: jQuery not found. Will retry when document is ready.');
-        document.addEventListener('DOMContentLoaded', function() {
-            // 最后尝试获取jQuery
-            $ = window.jQuery || window.$;
-            
-            if (!$) {
-                console.warn('YukiCat Slider: All jQuery detection methods failed. Slider will not initialize.');
-                return;
-            } else {
-                // jQuery已找到，延迟初始化
-                initWithjQuery($);
-            }
-        });
-        return;
-    } else {
-        // jQuery可用，立即使用
-        initWithjQuery($);
+    // 辅助函数：获取/设置 data 属性
+    function getData(element, key) {
+        const dataKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        return element.dataset[dataKey];
     }
-
-function initWithjQuery($) {
+    
+    function setData(element, key, value) {
+        const dataKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        element.dataset[dataKey] = value;
+    }
 
     class YukiCatSlider {
         constructor(element, options) {
@@ -36,75 +22,75 @@ function initWithjQuery($) {
                 return;
             }
             
-            this.container = $(element);
+            // 支持 DOM 元素和选择器字符串
+            this.container = typeof element === 'string' ? document.querySelector(element) : element;
             
-            // Check if we're in a shadow root
+            if (!this.container) {
+                return;
+            }
+            
+            // 检查是否在 shadow root 中
             this.shadowRoot = (options && options.shadowRoot) || null;
             
-            // Use shadow root as document context if available
+            // 使用 shadow root 作为文档上下文（如果可用）
             this.doc = this.shadowRoot || document;
             
-            // 安全检查：确保找到容器
-            if (!this.container.length) {
-                return;
-            }
-            
             // 已初始化检查 - 防止重复初始化
-            const existingInstance = this.container.data('yukicat-slider-initialized');
-            if (existingInstance) {
+            if (getData(this.container, 'yukicat-slider-initialized')) {
                 return;
             }
             
-            this.container.data('yukicat-slider-initialized', true);
+            setData(this.container, 'yukicat-slider-initialized', 'true');
             
             this.isActive = false;
             this.currentPosition = 50; // 百分比
             this.currentIndex = 0;
             this.nextIndex = 1;
-            this.layers = this.container.find('.yukicat-bas-layer');
-            this.handle = this.container.find('.yukicat-bas-handle');
-            this.handleButton = this.container.find('.yukicat-bas-handle-button');
-            this.progressBar = this.container.find('.yukicat-bas-progress-bar');
-            this.indicators = this.container.find('.yukicat-bas-indicator');
+            this.layers = Array.from(this.container.querySelectorAll('.yukicat-bas-layer'));
+            this.handle = this.container.querySelector('.yukicat-bas-handle');
+            this.handleButton = this.container.querySelector('.yukicat-bas-handle-button');
+            this.progressBar = this.container.querySelector('.yukicat-bas-progress-bar');
+            this.indicators = Array.from(this.container.querySelectorAll('.yukicat-bas-indicator'));
             this.totalImages = this.layers.length;
             this.animationFrame = null;
             this.containerRect = null;
             
             // 检查必要的元素
-            if (this.layers.length < 2) {
-                return;
-            }
-            
-            if (!this.handle.length || !this.handleButton.length) {
+            if (this.layers.length < 2 || !this.handle || !this.handleButton) {
                 return;
             }
             
             // 配置选项
-            this.options = $.extend({
-                moveSliderOnHover: false,        // 悬停时移动滑块
-                clickToMove: true,               // 点击时移动滑块
-                moveWithHandleOnly: false,       // 仅通过滑块把手移动
-                autoSlide: false,                // 自动滑动
-                autoSlideTime: 5000,             // 自动滑动时间间隔（毫秒）
-                orientation: 'horizontal'        // 方向 horizontal/vertical
+            this.options = Object.assign({
+                moveSliderOnHover: false,
+                clickToMove: true,
+                moveWithHandleOnly: false,
+                autoSlide: false,
+                autoSlideTime: 5000,
+                orientation: 'horizontal'
             }, options || {});
             
-            // 根据容器的属性设置
+            // 根据容器的 data 属性设置
             try {
-                if (this.container.data('hover-move') !== undefined) {
-                    this.options.moveSliderOnHover = this.container.data('hover-move') === 'true';
+                const hoverMove = getData(this.container, 'hover-move');
+                if (hoverMove !== undefined) {
+                    this.options.moveSliderOnHover = hoverMove === 'true';
                 }
-                if (this.container.data('click-move') !== undefined) {
-                    this.options.clickToMove = this.container.data('click-move') === 'true';
+                const clickMove = getData(this.container, 'click-move');
+                if (clickMove !== undefined) {
+                    this.options.clickToMove = clickMove === 'true';
                 }
-                if (this.container.data('handle-only') !== undefined) {
-                    this.options.moveWithHandleOnly = this.container.data('handle-only') === 'true';
+                const handleOnly = getData(this.container, 'handle-only');
+                if (handleOnly !== undefined) {
+                    this.options.moveWithHandleOnly = handleOnly === 'true';
                 }
-                if (this.container.data('auto-slide') !== undefined) {
-                    this.options.autoSlide = this.container.data('auto-slide') === 'true';
+                const autoSlide = getData(this.container, 'auto-slide');
+                if (autoSlide !== undefined) {
+                    this.options.autoSlide = autoSlide === 'true';
                 }
-                if (this.container.data('orientation') !== undefined) {
-                    this.options.orientation = this.container.data('orientation');
+                const orientation = getData(this.container, 'orientation');
+                if (orientation !== undefined) {
+                    this.options.orientation = orientation;
                 }
             } catch (e) {
                 // 静默处理数据属性错误
@@ -112,8 +98,13 @@ function initWithjQuery($) {
             
             // 设置正确的方向类
             if (this.options.orientation === 'vertical') {
-                this.container.addClass('yukicat-bas-vertical');
+                this.container.classList.add('yukicat-bas-vertical');
             }
+            
+            // 根据方向创建获取客户端坐标的函数（可复用模式）
+            this.getClientCoord = this.options.orientation === 'vertical' 
+                ? (e) => e.clientY 
+                : (e) => e.clientX;
             
             try {
                 this.init();
@@ -132,40 +123,39 @@ function initWithjQuery($) {
             if (this.layers && this.layers.length >= 2) {
                 // 分配Before/After类到图层
                 for(let i = 0; i < this.layers.length; i++) {
-                    const $layer = $(this.layers[i]);
-                    if (!$layer || !$layer.length) continue;
+                    const layer = this.layers[i];
                     
                     // 清除可能存在的类
-                    $layer.removeClass('active next yukicat-bas-before yukicat-bas-after');
+                    layer.classList.remove('active', 'next', 'yukicat-bas-before', 'yukicat-bas-after');
                     
                     if (i === 0) {
-                        $layer.addClass('yukicat-bas-before');
-                        $layer.addClass('active');
+                        layer.classList.add('yukicat-bas-before', 'active');
                     } else if (i === 1) {
-                        $layer.addClass('yukicat-bas-after');
-                        $layer.addClass('next');
+                        layer.classList.add('yukicat-bas-after', 'next');
                     } else {
-                        $layer.addClass('yukicat-bas-extra');
+                        layer.classList.add('yukicat-bas-extra');
                     }
                     
                     // 确保所有图层可见性正确
-                    $layer.css('opacity', i < 2 ? 1 : 0);
+                    layer.style.opacity = i < 2 ? '1' : '0';
                 }
                 
                 // 特殊处理：在Gutenberg编辑器中可能需要交换顺序
                 if (isInEditor) {
-                    // 由于在编辑器环境中顺序可能会变，我们通过标签或其他方式确保正确的顺序
-                    const beforeLayer = this.layers.filter('.yukicat-bas-before').first();
-                    const afterLayer = this.layers.filter('.yukicat-bas-after').first();
+                    const beforeLayer = this.layers.find(l => l.classList.contains('yukicat-bas-before'));
+                    const afterLayer = this.layers.find(l => l.classList.contains('yukicat-bas-after'));
                     
-                    // 如果标记了但顺序错了，交换它们的DOM顺序
-                    if (beforeLayer.length && afterLayer.length && beforeLayer.index() > afterLayer.index()) {
-                        const layersContainer = beforeLayer.parent();
-                        if (layersContainer && layersContainer.length) {
-                            layersContainer.prepend(beforeLayer);
-                            
-                            // 刷新layers引用和索引
-                            this.layers = this.container.find('.yukicat-bas-layer');
+                    if (beforeLayer && afterLayer) {
+                        const beforeIndex = this.layers.indexOf(beforeLayer);
+                        const afterIndex = this.layers.indexOf(afterLayer);
+                        
+                        if (beforeIndex > afterIndex) {
+                            const layersContainer = beforeLayer.parentNode;
+                            if (layersContainer) {
+                                layersContainer.insertBefore(beforeLayer, layersContainer.firstChild);
+                                // 刷新layers引用
+                                this.layers = Array.from(this.container.querySelectorAll('.yukicat-bas-layer'));
+                            }
                         }
                     }
                 }
@@ -177,7 +167,7 @@ function initWithjQuery($) {
             
             // 设置正确的方向类
             if (this.options && this.options.orientation === 'vertical') {
-                this.container.addClass('yukicat-bas-vertical');
+                this.container.classList.add('yukicat-bas-vertical');
             }
             
             // 强制设置初始状态
@@ -193,25 +183,21 @@ function initWithjQuery($) {
             
             // 特殊处理Gutenberg编辑器环境
             if (isInEditor) {
-                // 确保在编辑器中正确显示
-                this.container.addClass('yukicat-bas-in-editor');
+                this.container.classList.add('yukicat-bas-in-editor');
                 
-                // 强制重新计算尺寸
                 setTimeout(() => {
                     this.handleResize();
                     this.forceInitialState();
-                    
-                    // 在编辑器中固定初始位置为50%
                     this.setPosition(50);
                 }, 100);
             }
             
             // 添加初始动画提示，非编辑器环境下显示
-            if (!isInEditor && this.handleButton && this.handleButton.length) {
+            if (!isInEditor && this.handleButton) {
                 setTimeout(() => {
-                    this.handleButton.addClass('active');
+                    this.handleButton.classList.add('active');
                     setTimeout(() => {
-                        this.handleButton.removeClass('active');
+                        this.handleButton.classList.remove('active');
                     }, 3000);
                 }, 1000);
             }
@@ -221,75 +207,62 @@ function initWithjQuery($) {
             // 强制设置正确的初始状态
             if (this.totalImages >= 2) {
                 // 移除所有类，重新设置
-                this.layers.removeClass('active next');
+                this.layers.forEach(layer => {
+                    layer.classList.remove('active', 'next');
+                });
                 
                 // 第一张图片设为active（顶层，显示左边）
-                this.layers.eq(0).addClass('active');
+                this.layers[0].classList.add('active');
                 
                 // 第二张图片设为next（底层，显示右边）
-                this.layers.eq(1).addClass('next');
+                this.layers[1].classList.add('next');
                 
-                // 立即应用裁剪 - 正确的方向：左边是第一张图片，右边是第二张图片
-                // active层（第一张图片）从右边裁剪，显示左侧部分
-                this.layers.eq(0).css('clip-path', `inset(0 ${100-this.currentPosition}% 0 0)`);
-                // next层（第二张图片）完整显示作为背景
-                this.layers.eq(1).css('clip-path', 'none');
-                
-                // 静默执行，无需日志输出
+                // 立即应用裁剪
+                this.layers[0].style.clipPath = `inset(0 ${100-this.currentPosition}% 0 0)`;
+                this.layers[1].style.clipPath = 'none';
             }
         }
 
         bindEvents() {
             // 存储绑定的函数引用，以便解绑和重新绑定
             this._boundStartDrag = this.startDrag.bind(this);
-            this._boundDrag = this.drag.bind(this);
-            this._boundEndDrag = this.endDrag.bind(this);
             this._boundIndicatorClick = this.handleIndicatorClick.bind(this);
             this._boundHandleResize = this.handleResize.bind(this);
             this._boundHandleHover = this.handleHover ? this.handleHover.bind(this) : null;
             this._boundHandleClick = this.handleClick ? this.handleClick.bind(this) : null;
             
-            // 添加命名空间到所有事件，便于清理
-            const namespace = '.yukicat-slider';
-            
             // 使用Pointer Events替代Touch/Mouse Events
-            if (this.handle && this.handle.length) {
-                this.handle.off('pointerdown' + namespace)
-                         .on('pointerdown' + namespace, this._boundStartDrag);
+            if (this.handle) {
+                this.handle.addEventListener('pointerdown', this._boundStartDrag);
             }
             
             // 仅当不限制为只能拖动手柄时，允许点击容器任意位置拖动
-            if (this.container && this.container.length) {
-                this.container.off('pointerdown' + namespace)
-                             .on('pointerdown' + namespace, (e) => {
+            if (!this.options.moveWithHandleOnly) {
+                this.container.addEventListener('pointerdown', (e) => {
                     // 只有点击到容器本身或滑块时才开始拖拽
-                    if (e.target === this.container[0] || $(e.target).closest('.yukicat-bas-handle').length > 0) {
+                    if (e.target === this.container || e.target.closest('.yukicat-bas-handle')) {
                         this.startDrag(e);
                     }
                 });
             }
-            
-            // 使用 shadowRoot context if available, otherwise use document
-            const docContext = $(document);
-            
-            docContext.off('pointermove.yukicat')
-                      .on('pointermove.yukicat', this._boundDrag);
-            docContext.off('pointerup.yukicat pointercancel.yukicat')
-                      .on('pointerup.yukicat pointercancel.yukicat', this._boundEndDrag);
+
+            // 注意：pointermove 和 pointerup 事件现在在 startDrag 中动态注册
 
             // 指示器点击
             if (this.indicators && this.indicators.length) {
-                this.indicators.off('click' + namespace).on('click' + namespace, this._boundIndicatorClick);
+                this.indicators.forEach(indicator => {
+                    indicator.addEventListener('click', this._boundIndicatorClick);
+                });
             }
 
             // 悬停时移动滑块
-            if (this._boundHandleHover && this.options && this.options.moveSliderOnHover && this.container && this.container.length) {
-                this.container.off('pointermove' + namespace).on('pointermove' + namespace, this._boundHandleHover);
+            if (this._boundHandleHover && this.options && this.options.moveSliderOnHover) {
+                this.container.addEventListener('pointermove', this._boundHandleHover);
             }
             
             // 点击时移动滑块
-            if (this._boundHandleClick && this.options && this.options.clickToMove && this.container && this.container.length) {
-                this.container.off('click' + namespace).on('click' + namespace, this._boundHandleClick);
+            if (this._boundHandleClick && this.options && this.options.clickToMove) {
+                this.container.addEventListener('click', this._boundHandleClick);
             }
             
             // 自动滑动
@@ -297,46 +270,51 @@ function initWithjQuery($) {
                 this.startAutoSlide();
                 
                 // 当鼠标悬停时停止自动滑动，移开时恢复
-                if (this.container && this.container.length) {
-                    this.container.off('pointerenter' + namespace).on('pointerenter' + namespace, () => {
-                        if (typeof this.stopAutoSlide === 'function') {
-                            this.stopAutoSlide();
-                        }
-                    });
-                    
-                    this.container.off('pointerleave' + namespace).on('pointerleave' + namespace, () => {
-                        if (this.options && this.options.autoSlide && typeof this.startAutoSlide === 'function') {
-                            this.startAutoSlide();
-                        }
-                    });
-                }
-            }
-
-            // 窗口调整大小 - 使用节流函数防止过度触发
-            $(window).off('resize.yukicat').on('resize.yukicat', this._boundHandleResize);
-
-            // 防止图片拖拽和右键菜单
-            if (this.container && this.container.length) {
-                this.container.find('img').off('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace)
-                                   .on('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace, function(e) {
-                    e.preventDefault();
-                    return false;
+                this.container.addEventListener('pointerenter', () => {
+                    if (typeof this.stopAutoSlide === 'function') {
+                        this.stopAutoSlide();
+                    }
                 });
                 
-                // 防止整个容器的默认行为，但允许滑块交互
-                this.container.off('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace)
-                             .on('dragstart' + namespace + ' selectstart' + namespace + ' contextmenu' + namespace, function(e) {
-                    if (!$(e.target).closest('.yukicat-bas-handle').length) {
-                        e.preventDefault();
-                        return false;
+                this.container.addEventListener('pointerleave', () => {
+                    if (this.options && this.options.autoSlide && typeof this.startAutoSlide === 'function') {
+                        this.startAutoSlide();
                     }
                 });
             }
+
+            // 窗口调整大小
+            window.addEventListener('resize', this._boundHandleResize);
+
+            // 防止图片拖拽和右键菜单
+            const images = this.container.querySelectorAll('img');
+            images.forEach(img => {
+                img.addEventListener('dragstart', (e) => e.preventDefault());
+                img.addEventListener('selectstart', (e) => e.preventDefault());
+                img.addEventListener('contextmenu', (e) => e.preventDefault());
+            });
+            
+            // 防止整个容器的默认行为，但允许滑块交互
+            this.container.addEventListener('dragstart', (e) => {
+                if (!e.target.closest('.yukicat-bas-handle')) {
+                    e.preventDefault();
+                }
+            });
+            this.container.addEventListener('selectstart', (e) => {
+                if (!e.target.closest('.yukicat-bas-handle')) {
+                    e.preventDefault();
+                }
+            });
+            this.container.addEventListener('contextmenu', (e) => {
+                if (!e.target.closest('.yukicat-bas-handle')) {
+                    e.preventDefault();
+                }
+            });
         }
 
         setupKeyboard() {
-            this.container.attr('tabindex', '0');
-            this.container.on('keydown', this.handleKeyboard.bind(this));
+            this.container.setAttribute('tabindex', '0');
+            this.container.addEventListener('keydown', this.handleKeyboard.bind(this));
         }
 
         startDrag(e) {
@@ -347,10 +325,11 @@ function initWithjQuery($) {
             
             // 检查是否只允许通过滑块把手拖动
             if (this.options && this.options.moveWithHandleOnly) {
-                // 如果用户点击的不是把手区域，忽略事件
-                const targetEl = $(e.target);
-                if (!targetEl.is('.yukicat-bas-handle') && !targetEl.is('.yukicat-bas-handle-button') && 
-                    !targetEl.closest('.yukicat-bas-handle, .yukicat-bas-handle-button').length) {
+                const target = e.target;
+                if (!target.classList.contains('yukicat-bas-handle') && 
+                    !target.classList.contains('yukicat-bas-handle-button') && 
+                    !target.closest('.yukicat-bas-handle') &&
+                    !target.closest('.yukicat-bas-handle-button')) {
                     return;
                 }
             }
@@ -361,15 +340,21 @@ function initWithjQuery($) {
             e.stopPropagation();
             
             this.isActive = true;
-            this.container.addClass('dragging');
-            this.handleButton.addClass('active');
-            
-            // 保存起始点，用于计算拖动距离 - 使用 Pointer Events
-            this.dragStartX = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
-            this.dragStartY = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
+            this.container.classList.add('dragging');
+            this.handleButton.classList.add('active');
             
             // 立即获取容器尺寸，避免后续计算错误
-            this.containerRect = this.container[0].getBoundingClientRect();
+            this.containerRect = this.container.getBoundingClientRect();
+            
+            // 创建拖动和结束拖动的处理函数
+            this._boundDrag = this.drag.bind(this);
+            this._boundEndDrag = this.endDrag.bind(this);
+            
+            // 动态在 document 上注册 pointermove 和 pointerup 事件
+            // 注意：按照issue要求，在ShadowRoot上注册会导致功能异常，所以使用document
+            document.addEventListener('pointermove', this._boundDrag);
+            document.addEventListener('pointerup', this._boundEndDrag);
+            document.addEventListener('pointercancel', this._boundEndDrag);
         }
 
         drag(e) {
@@ -380,26 +365,24 @@ function initWithjQuery($) {
             }
             e.stopPropagation();
             
-            // 使用 Pointer Events API
-            const clientX = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
-            const clientY = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
+            // 使用可复用的编程模式：只获取需要的坐标（clientX或clientY）
+            const clientCoord = this.getClientCoord(e);
             
             // 使用缓存的容器尺寸，如果没有则重新获取
-            const rect = this.containerRect || this.container[0].getBoundingClientRect();
+            const rect = this.containerRect || this.container.getBoundingClientRect();
             
             // 根据方向计算位置
             let newPosition;
             if (this.options && this.options.orientation === 'vertical') {
-                const y = clientY - rect.top;
+                const y = clientCoord - rect.top;
                 newPosition = Math.max(0, Math.min(100, (y / rect.height) * 100));
             } else {
-                const x = clientX - rect.left;
+                const x = clientCoord - rect.left;
                 newPosition = Math.max(0, Math.min(100, (x / rect.width) * 100));
             }
             
             // 防止值跳变
             if (Math.abs(newPosition - this.currentPosition) > 50) {
-                // 如果变化太大，可能是出现了问题，使用缓慢渐进的方式调整
                 this.currentPosition = this.currentPosition + (newPosition - this.currentPosition) * 0.1;
             } else {
                 this.currentPosition = newPosition;
@@ -414,40 +397,35 @@ function initWithjQuery($) {
             if (!this.isActive) return;
             
             this.isActive = false;
-            this.container.removeClass('dragging');
-            this.handleButton.removeClass('active');
+            this.container.classList.remove('dragging');
+            this.handleButton.classList.remove('active');
             
             // 清除缓存的容器尺寸
             this.containerRect = null;
+            
+            // 动态移除在 startDrag 中注册的事件监听器
+            document.removeEventListener('pointermove', this._boundDrag);
+            document.removeEventListener('pointerup', this._boundEndDrag);
+            document.removeEventListener('pointercancel', this._boundEndDrag);
         }
 
         updateSlider() {
             // 先检查必要的元素是否存在
-            if (!this.handle || !this.handle.length || !this.progressBar || !this.progressBar.length) {
+            if (!this.handle || !this.progressBar) {
                 throw new Error('YukiCatSlider: Required elements (handle or progressBar) not found');
             }
             
             // 根据方向更新滑块位置
             if (this.options && this.options.orientation === 'horizontal') {
-                this.handle.css({
-                    'left': this.currentPosition + '%',
-                    'top': ''
-                });
-                // 更新进度条
-                this.progressBar.css({
-                    'width': this.currentPosition + '%',
-                    'height': ''
-                });
+                this.handle.style.left = this.currentPosition + '%';
+                this.handle.style.top = '';
+                this.progressBar.style.width = this.currentPosition + '%';
+                this.progressBar.style.height = '';
             } else {
-                this.handle.css({
-                    'top': this.currentPosition + '%',
-                    'left': ''
-                });
-                // 更新进度条
-                this.progressBar.css({
-                    'height': this.currentPosition + '%',
-                    'width': ''
-                });
+                this.handle.style.top = this.currentPosition + '%';
+                this.handle.style.left = '';
+                this.progressBar.style.height = this.currentPosition + '%';
+                this.progressBar.style.width = '';
             }
             
             // 更新图片裁剪
@@ -471,21 +449,23 @@ function initWithjQuery($) {
         }
 
         updateActiveImages() {
-            this.layers.removeClass('active next');
+            this.layers.forEach(layer => {
+                layer.classList.remove('active', 'next');
+            });
             
             if (this.totalImages <= 2) {
                 // 两张图片模式，始终显示两张
-                this.layers.eq(0).addClass('active');
+                this.layers[0].classList.add('active');
                 if (this.totalImages === 2) {
-                    this.layers.eq(1).addClass('next');
+                    this.layers[1].classList.add('next');
                 }
             } else {
                 // 多张图片模式
-                this.layers.eq(this.currentIndex).addClass('active');
+                this.layers[this.currentIndex].classList.add('active');
                 
                 // 显示下一张图片（如果存在）
                 if (this.nextIndex !== this.currentIndex) {
-                    this.layers.eq(this.nextIndex).addClass('next');
+                    this.layers[this.nextIndex].classList.add('next');
                 }
             }
         }
@@ -493,16 +473,10 @@ function initWithjQuery($) {
         updateImageClipping() {
             if (this.totalImages <= 2) {
                 // 传统的两张图片模式
-                // 第一张图片（顶层active）从右边裁剪，显示左边部分
-                this.layers.eq(0).css({
-                    'clip-path': `inset(0 ${100-this.currentPosition}% 0 0)`
-                });
+                this.layers[0].style.clipPath = `inset(0 ${100-this.currentPosition}% 0 0)`;
                 
-                // 第二张图片（底层next）不裁剪，完全显示作为背景
                 if (this.totalImages === 2) {
-                    this.layers.eq(1).css('clip-path', 'none');
-                    
-                    // 静默执行，无需日志输出
+                    this.layers[1].style.clipPath = 'none';
                 }
             } else {
                 // 多张图片模式
@@ -511,14 +485,13 @@ function initWithjQuery($) {
                 const segmentProgress = (currentSegment - this.currentIndex) * 100;
                 
                 // 重置所有图片的裁剪
-                this.layers.css('clip-path', 'none');
+                this.layers.forEach(layer => {
+                    layer.style.clipPath = 'none';
+                });
                 
                 // 只对活动图片应用裁剪
                 if (this.nextIndex !== this.currentIndex) {
-                    // 当前活动图片从右边裁剪
-                    this.layers.eq(this.currentIndex).css({
-                        'clip-path': `inset(0 ${100 - segmentProgress}% 0 0)`
-                    });
+                    this.layers[this.currentIndex].style.clipPath = `inset(0 ${100 - segmentProgress}% 0 0)`;
                 }
             }
         }
@@ -526,12 +499,14 @@ function initWithjQuery($) {
         updateIndicators() {
             if (this.indicators.length === 0) return;
             
-            this.indicators.removeClass('active');
-            this.indicators.eq(this.currentIndex).addClass('active');
+            this.indicators.forEach(indicator => {
+                indicator.classList.remove('active');
+            });
+            this.indicators[this.currentIndex].classList.add('active');
         }
 
         handleIndicatorClick(e) {
-            const index = $(e.currentTarget).data('index');
+            const index = parseInt(getData(e.currentTarget, 'index'));
             this.jumpToImage(index);
         }
 
@@ -551,7 +526,7 @@ function initWithjQuery($) {
         handleKeyboard(e) {
             const step = 5; // 每次移动5%
             
-            switch(e.which) {
+            switch(e.which || e.keyCode) {
                 case 37: // 左箭头
                     e.preventDefault();
                     this.currentPosition = Math.max(0, this.currentPosition - step);
@@ -629,171 +604,128 @@ function initWithjQuery($) {
                     }
                 }
                 
-                // 安全地清理事件监听器
-                // Use shadowRoot context if available, otherwise use document
-                
-                // 移除文档级别的事件监听器
-                docContext.off('pointermove.yukicat');
-                docContext.off('pointerup.yukicat pointercancel.yukicat');
-                docContext.off('keydown.yukicat');
-                    
-                    // 移除滑块把手的事件
-                    if (this.handle && this.handle.length) {
-                        this.handle.off('.yukicat-slider'); // 使用命名空间移除事件
-                    }
-                    
-                    // 移除按钮的事件
-                    if (this.handleButton && this.handleButton.length) {
-                        this.handleButton.off('.yukicat-slider');
-                    }
-                 
-                
-                // 清理容器
-                try {
-                    if (this.container && this.container.length) {
-                        this.container.off('.yukicat-slider'); // 使用命名空间移除事件
-                        // 移除可能的类
-                        this.container.removeClass('dragging initialized');
-                        // 移除数据引用
-                        this.container.removeData('yukicat-slider');
-                        this.container.removeData('yukicat-slider-initialized');
-                    }
-                } catch (e) {
-                    // 静默处理容器清理错误
+                // 移除事件监听器
+                if (this.handle && this._boundStartDrag) {
+                    this.handle.removeEventListener('pointerdown', this._boundStartDrag);
                 }
                 
-                // 清理指示器
-                try {
-                    if (this.indicators && this.indicators.length) {
-                        this.indicators.off('.yukicat-slider'); // 使用命名空间移除事件
-                    }
-                } catch (e) {
-                    // 静默处理指示器清理错误
+                if (this.indicators && this._boundIndicatorClick) {
+                    this.indicators.forEach(indicator => {
+                        indicator.removeEventListener('click', this._boundIndicatorClick);
+                    });
+                }
+                
+                if (this._boundHandleResize) {
+                    window.removeEventListener('resize', this._boundHandleResize);
+                }
+                
+                // 移除可能在 startDrag 中注册的事件
+                if (this._boundDrag) {
+                    document.removeEventListener('pointermove', this._boundDrag);
+                }
+                if (this._boundEndDrag) {
+                    document.removeEventListener('pointerup', this._boundEndDrag);
+                    document.removeEventListener('pointercancel', this._boundEndDrag);
+                }
+                
+                // 清理容器
+                if (this.container) {
+                    this.container.classList.remove('dragging', 'initialized');
+                    setData(this.container, 'yukicat-slider', '');
+                    setData(this.container, 'yukicat-slider-initialized', '');
                 }
                 
                 // 还原图层样式
-                try {
-                    if (this.layers && this.layers.length) {
-                        this.layers.css({
-                            'clip-path': '',
-                            'opacity': ''
-                        });
-                    }
-                } catch (e) {
-                    // 静默处理样式还原错误
+                if (this.layers && this.layers.length) {
+                    this.layers.forEach(layer => {
+                        layer.style.clipPath = '';
+                        layer.style.opacity = '';
+                    });
                 }
-                
-                // 使用命名空间清理文档级别的事件
-                // Use shadowRoot context if available, otherwise use document  
-                const docContext = $(document);
-                const winContext = $(window);
-                
-                docContext.off('pointermove.yukicat');
-                docContext.off('pointerup.yukicat');
-                docContext.off('pointercancel.yukicat');
-                winContext.off('resize.yukicat');
             } catch (destroyError) {
                 // 静默处理整个销毁过程中的错误
             }
         }
     }
 
-    // 改进的自动初始化函数
+    // 自动初始化函数
     function initSliders() {
         try {
-            // 保存页面上原有的jQuery冲突变量
-            const _$ = window.$ || null;
+            const containers = document.querySelectorAll('.yukicat-bas-container:not([data-yukicat-slider-initialized="true"])');
             
-            // 确保使用jQuery而非其他库（避免与Prototype等冲突）
-            (function($) {
-                // 仅初始化尚未初始化的滑块
-                $('.yukicat-bas-container:not([data-yukicat-slider-initialized="true"])').each(function() {
-                    const $container = $(this);
-                    
-                    // 检查是否已经初始化过（双重检查）
-                    if ($container.data('yukicat-slider-initialized') === true) {
-                        return;
-                    }
-                    
-                    // 确保容器有一个唯一ID
-                    if (!$container.attr('data-slider-id')) {
-                        $container.attr('data-slider-id', 'yukicat-slider-' + Math.random().toString(36).substr(2, 9));
-                    }
-                    
-                    // 确保图片已加载 - 添加loaded类
-                    $container.find('img').each(function() {
-                        const $img = $(this);
-                        if (this.complete) {
-                            $img.addClass('loaded');
-                        } else {
-                            $img.on('load', function() {
-                                $(this).addClass('loaded');
-                            });
-                            
-                            // 添加错误处理
-                            $img.on('error', function() {
-                                // 静默处理错误
-                                $(this).addClass('error');
-                                $(this).css({
-                                    'background-color': '#f0f0f0',
-                                    'visibility': 'visible'
-                                });
-                            });
-                        }
-                    });
-                    
-                    try {
-                        // 创建新实例
-                        const slider = new YukiCatSlider(this);
-                        if (slider) {
-                            $container.data('yukicat-slider', slider);
-                            // 标记初始化完成
-                            $container.addClass('initialized');
-                        }
-                    } catch (e) {
-                        // 静默处理单个滑块的错误
+            containers.forEach(container => {
+                // 检查是否已经初始化过（双重检查）
+                if (getData(container, 'yukicat-slider-initialized') === 'true') {
+                    return;
+                }
+                
+                // 确保容器有一个唯一ID
+                if (!getData(container, 'slider-id')) {
+                    setData(container, 'slider-id', 'yukicat-slider-' + Math.random().toString(36).substr(2, 9));
+                }
+                
+                // 确保图片已加载
+                const images = container.querySelectorAll('img');
+                images.forEach(img => {
+                    if (img.complete) {
+                        img.classList.add('loaded');
+                    } else {
+                        img.addEventListener('load', function() {
+                            this.classList.add('loaded');
+                        });
+                        
+                        img.addEventListener('error', function() {
+                            this.classList.add('error');
+                            this.style.backgroundColor = '#f0f0f0';
+                            this.style.visibility = 'visible';
+                        });
                     }
                 });
-            })(jQuery);
-            
-            // 恢复原有的$变量，避免破坏其他脚本
-            if (_$ !== null) {
-                window.$ = _$;
-            }
+                
+                try {
+                    // 创建新实例
+                    const slider = new YukiCatSlider(container);
+                    if (slider) {
+                        setData(container, 'yukicat-slider', 'initialized');
+                        container.classList.add('initialized');
+                    }
+                } catch (e) {
+                    // 静默处理单个滑块的错误
+                }
+            });
         } catch (e) {
             // 静默处理整个初始化过程的错误
         }
     }
 
     // 页面加载完成后初始化
-    $(document).ready(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            initSliders();
+            
+            // 使用递增的延迟检查，确保动态加载的内容也能被初始化
+            setTimeout(initSliders, 300);
+            setTimeout(initSliders, 800);
+            setTimeout(initSliders, 1500);
+        });
+    } else {
         initSliders();
-        
-        // 使用递增的延迟检查，确保动态加载的内容也能被初始化
         setTimeout(initSliders, 300);
         setTimeout(initSliders, 800);
         setTimeout(initSliders, 1500);
-    });
+    }
 
     // 监听窗口加载完成事件
-    $(window).on('load', function() {
+    window.addEventListener('load', function() {
         initSliders();
-        
-        // 在load事件后添加CSS变量，帮助解决某些主题样式问题
-        $('body').append(`
-            <style>
-                .yukicat-bas-layer.active.yukicat-bas-before {
-                    --clip-right: ${50}%;
-                }
-            </style>
-        `);
         
         // 处理可能的图片延迟加载
         setTimeout(function() {
-            $('.yukicat-bas-layer img').each(function() {
-                if (!$(this).hasClass('loaded')) {
-                    $(this).addClass('loaded');
-                    $(this).css('visibility', 'visible');
+            const images = document.querySelectorAll('.yukicat-bas-layer img');
+            images.forEach(img => {
+                if (!img.classList.contains('loaded')) {
+                    img.classList.add('loaded');
+                    img.style.visibility = 'visible';
                 }
             });
             // 再次初始化
@@ -808,7 +740,6 @@ function initWithjQuery($) {
         // 监听区块变化
         window.wp.data.subscribe(() => {
             try {
-                // 优先使用新版API
                 let blocks;
                 if (window.wp.data.select('core/block-editor')) {
                     blocks = window.wp.data.select('core/block-editor').getBlocks();
@@ -818,7 +749,6 @@ function initWithjQuery($) {
                 
                 if (blocks && blocks.length !== lastBlockCount) {
                     lastBlockCount = blocks.length;
-                    // 区块数量变化时重新初始化
                     setTimeout(initSliders, 100);
                 }
             } catch (e) {
@@ -828,9 +758,10 @@ function initWithjQuery($) {
     }
     
     // 处理滚动事件，使滑块在视口中时显示
-    $(window).on('scroll', function() {
-        $('.yukicat-bas-container:not(.initialized)').each(function() {
-            const rect = this.getBoundingClientRect();
+    window.addEventListener('scroll', function() {
+        const containers = document.querySelectorAll('.yukicat-bas-container:not(.initialized)');
+        containers.forEach(container => {
+            const rect = container.getBoundingClientRect();
             const windowHeight = window.innerHeight || document.documentElement.clientHeight;
             
             // 如果滑块在可视区域
@@ -848,10 +779,9 @@ function initWithjQuery($) {
             
             mutations.forEach(function(mutation) {
                 // 检测是否是古腾堡编辑器中的变化
-                if (mutation.target && (
-                    mutation.target.classList && 
+                if (mutation.target && mutation.target.classList && 
                     (mutation.target.classList.contains('block-editor-block-list__layout') ||
-                     mutation.target.classList.contains('wp-block')))) {
+                     mutation.target.classList.contains('wp-block'))) {
                     gutenbergEditorChanges = true;
                 }
                 
@@ -860,14 +790,12 @@ function initWithjQuery($) {
                     mutation.addedNodes.forEach(function(node) {
                         try {
                             if (node && node.nodeType === 1) {
-                                const $node = $(node);
-                                
                                 // 直接添加的滑块容器
-                                if ($node.hasClass && $node.hasClass('yukicat-bas-container')) {
+                                if (node.classList && node.classList.contains('yukicat-bas-container')) {
                                     slidersFound = true;
                                 } 
                                 // 添加的元素包含滑块容器
-                                else if ($node.find && $node.find('.yukicat-bas-container').length > 0) {
+                                else if (node.querySelectorAll && node.querySelectorAll('.yukicat-bas-container').length > 0) {
                                     slidersFound = true;
                                 }
                             }
@@ -879,9 +807,8 @@ function initWithjQuery($) {
                     // 检查属性变化（如添加class）
                     if (mutation.target && mutation.target.nodeType === 1) {
                         try {
-                            const $target = $(mutation.target);
-                            if (($target.hasClass && $target.hasClass('yukicat-bas-container')) || 
-                                ($target.find && $target.find('.yukicat-bas-container').length > 0)) {
+                            if ((mutation.target.classList && mutation.target.classList.contains('yukicat-bas-container')) || 
+                                (mutation.target.querySelectorAll && mutation.target.querySelectorAll('.yukicat-bas-container').length > 0)) {
                                 slidersFound = true;
                             }
                         } catch (e) {
@@ -893,10 +820,11 @@ function initWithjQuery($) {
             
             // 如果找到滑块，延迟初始化（防止DOM未完全渲染）
             if (slidersFound) {
-                // 确保图片完全加载
                 setTimeout(function() {
-                    $('.yukicat-bas-container:not(.initialized)').each(function() {
-                        $(this).find('img').addClass('loaded').css('visibility', 'visible');
+                    const images = document.querySelectorAll('.yukicat-bas-container:not(.initialized) img');
+                    images.forEach(img => {
+                        img.classList.add('loaded');
+                        img.style.visibility = 'visible';
                     });
                     initSliders();
                 }, 200);
@@ -904,7 +832,6 @@ function initWithjQuery($) {
             
             // 如果是Gutenberg编辑器中的变化，多次尝试初始化
             if (gutenbergEditorChanges) {
-                // 在编辑器中需要多次尝试，因为DOM可能会被编辑器多次修改
                 setTimeout(initSliders, 100);
                 setTimeout(initSliders, 500);
                 setTimeout(initSliders, 1000);
@@ -921,8 +848,8 @@ function initWithjQuery($) {
         // 浏览器不支持MutationObserver或发生错误
         // 回退到轮询检查
         setInterval(function() {
-            // 检查页面上未初始化的滑块
-            if ($('.yukicat-bas-container:not(.initialized)').length > 0) {
+            const uninitializedSliders = document.querySelectorAll('.yukicat-bas-container:not(.initialized)');
+            if (uninitializedSliders.length > 0) {
                 initSliders();
             }
         }, 2000);
@@ -931,16 +858,4 @@ function initWithjQuery($) {
     // 全局API
     window.YukiCatSlider = YukiCatSlider;
 
-    // jQuery插件形式
-    $.fn.yukicatSlider = function(options) {
-        return this.each(function() {
-            if (!$(this).data('yukicat-slider')) {
-                const slider = new YukiCatSlider(this);
-                $(this).data('yukicat-slider', slider);
-            }
-        });
-    };
-}
-
-// 立即执行上面创建的函数
 })();

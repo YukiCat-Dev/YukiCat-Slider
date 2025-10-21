@@ -24,20 +24,28 @@ class Frontend {
     }
     
     /**
-     * 加载前端脚本
+     * 公开方法：加载前端依赖（CSS和JS）
+     * 可被其他类复用，例如 Admin 类
      */
-    public function enqueue_frontend_scripts() {
+    public static function enqueue_frontend_assets() {
         // 总是加载CSS
         wp_enqueue_style('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/css/frontend.css', array(), YUKICAT_BAS_VERSION);
         
-        // 加载 Web Component (depends on frontend.js for YukiCatSlider class)
-        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), YUKICAT_BAS_VERSION, true);
+        // 加载前端核心脚本（无jQuery依赖）
+        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array(), YUKICAT_BAS_VERSION, true);
         
         // Web component must load after frontend.js
         wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array('yukicat-bas-frontend'), YUKICAT_BAS_VERSION, true);
         
         // 加载初始化脚本
         wp_enqueue_script('yukicat-bas-init', YUKICAT_BAS_PLUGIN_URL . 'assets/js/init.js', array('yukicat-bas-web-component'), YUKICAT_BAS_VERSION, true);
+    }
+    
+    /**
+     * 加载前端脚本
+     */
+    public function enqueue_frontend_scripts() {
+        self::enqueue_frontend_assets();
     }
     
     /**
