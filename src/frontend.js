@@ -702,162 +702,16 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             initSliders();
-            
-            // 使用递增的延迟检查，确保动态加载的内容也能被初始化
-            setTimeout(initSliders, 300);
-            setTimeout(initSliders, 800);
-            setTimeout(initSliders, 1500);
         });
     } else {
         initSliders();
-        setTimeout(initSliders, 300);
-        setTimeout(initSliders, 800);
-        setTimeout(initSliders, 1500);
     }
 
-    // 监听窗口加载完成事件
+    // 监听窗口加载完成事件（用于捕获延迟加载的图片）
     window.addEventListener('load', function() {
         initSliders();
-        
-        // 处理可能的图片延迟加载
-        setTimeout(function() {
-            const images = document.querySelectorAll('.yukicat-bas-layer img');
-            images.forEach(img => {
-                if (!img.classList.contains('loaded')) {
-                    img.classList.add('loaded');
-                    img.style.visibility = 'visible';
-                }
-            });
-            // 再次初始化
-            initSliders();
-        }, 2000);
     });
     
-    // 特别针对Gutenberg编辑器的处理
-    if (window.wp && window.wp.data && window.wp.data.subscribe) {
-        let lastBlockCount = 0;
-        
-        // 监听区块变化
-        window.wp.data.subscribe(() => {
-            try {
-                let blocks;
-                if (window.wp.data.select('core/block-editor')) {
-                    blocks = window.wp.data.select('core/block-editor').getBlocks();
-                } else if (window.wp.data.select('core/editor')) {
-                    blocks = window.wp.data.select('core/editor').getBlocks();
-                }
-                
-                if (blocks && blocks.length !== lastBlockCount) {
-                    lastBlockCount = blocks.length;
-                    setTimeout(initSliders, 100);
-                }
-            } catch (e) {
-                // 忽略错误
-            }
-        });
-    }
-    
-    // 处理滚动事件，使滑块在视口中时显示
-    window.addEventListener('scroll', function() {
-        const containers = document.querySelectorAll('.yukicat-bas-container:not(.initialized)');
-        containers.forEach(container => {
-            const rect = container.getBoundingClientRect();
-            const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-            
-            // 如果滑块在可视区域
-            if (rect.top <= windowHeight && rect.bottom >= 0) {
-                initSliders();
-            }
-        });
-    });
-
-    // 增强的MutationObserver，更好地处理动态添加的滑块
-    try {
-        const observer = new MutationObserver(function(mutations) {
-            let slidersFound = false;
-            let gutenbergEditorChanges = false;
-            
-            mutations.forEach(function(mutation) {
-                // 检测是否是古腾堡编辑器中的变化
-                if (mutation.target && mutation.target.classList && 
-                    (mutation.target.classList.contains('block-editor-block-list__layout') ||
-                     mutation.target.classList.contains('wp-block'))) {
-                    gutenbergEditorChanges = true;
-                }
-                
-                if (mutation.type === 'childList') {
-                    // 检查是否有新增的滑块元素
-                    mutation.addedNodes.forEach(function(node) {
-                        try {
-                            if (node && node.nodeType === 1) {
-                                // 直接添加的滑块容器
-                                if (node.classList && node.classList.contains('yukicat-bas-container')) {
-                                    slidersFound = true;
-                                } 
-                                // 添加的元素包含滑块容器
-                                else if (node.querySelectorAll && node.querySelectorAll('.yukicat-bas-container').length > 0) {
-                                    slidersFound = true;
-                                }
-                            }
-                        } catch (e) {
-                            // 静默处理节点错误
-                        }
-                    });
-                    
-                    // 检查属性变化（如添加class）
-                    if (mutation.target && mutation.target.nodeType === 1) {
-                        try {
-                            if ((mutation.target.classList && mutation.target.classList.contains('yukicat-bas-container')) || 
-                                (mutation.target.querySelectorAll && mutation.target.querySelectorAll('.yukicat-bas-container').length > 0)) {
-                                slidersFound = true;
-                            }
-                        } catch (e) {
-                            // 静默处理目标错误
-                        }
-                    }
-                }
-            });
-            
-            // 如果找到滑块，延迟初始化（防止DOM未完全渲染）
-            if (slidersFound) {
-                setTimeout(function() {
-                    const images = document.querySelectorAll('.yukicat-bas-container:not(.initialized) img');
-                    images.forEach(img => {
-                        img.classList.add('loaded');
-                        img.style.visibility = 'visible';
-                    });
-                    initSliders();
-                }, 200);
-            }
-            
-            // 如果是Gutenberg编辑器中的变化，多次尝试初始化
-            if (gutenbergEditorChanges) {
-                setTimeout(initSliders, 100);
-                setTimeout(initSliders, 500);
-                setTimeout(initSliders, 1000);
-            }
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class', 'style', 'data-block', 'data-type']
-        });
-    } catch (e) {
-        // 浏览器不支持MutationObserver或发生错误
-        // 回退到轮询检查
-        setInterval(function() {
-            const uninitializedSliders = document.querySelectorAll('.yukicat-bas-container:not(.initialized)');
-            if (uninitializedSliders.length > 0) {
-                initSliders();
-            }
-        }, 2000);
-    }
-
-    // 全局API
-    window.YukiCatSlider = YukiCatSlider;
-
     // WordPress特定事件钩子（当jQuery可用时）
     // 这些是WordPress主题和插件常用的事件，用于处理AJAX内容加载
     if (window.jQuery) {
@@ -867,5 +721,8 @@
             initSliders();
         });
     }
+
+    // 全局API
+    window.YukiCatSlider = YukiCatSlider;
 
 })();

@@ -180,8 +180,7 @@ import styles from './web-component-styles.css?inline';
         initializeSlider() {
             // Wait for YukiCatSlider to be available
             const initSlider = () => {
-                if (window.YukiCatSlider && window.jQuery) {
-                    const $ = window.jQuery;
+                if (window.YukiCatSlider) {
                     const container = this.shadowRoot.querySelector('.yukicat-bas-container');
                     if (container) {
                         // Clean up old instance
@@ -190,8 +189,8 @@ import styles from './web-component-styles.css?inline';
                         }
                         
                         // Create new instance with shadow DOM support
-                        // Pass the jQuery-wrapped container and shadow root
-                        this.sliderInstance = new window.YukiCatSlider($(container), {
+                        // YukiCatSlider now accepts DOM element directly (no jQuery needed)
+                        this.sliderInstance = new window.YukiCatSlider(container, {
                             shadowRoot: this.shadowRoot,
                             orientation: this.config.orientation,
                             autoSlide: this.config.autoSlide,
