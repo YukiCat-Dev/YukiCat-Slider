@@ -154,13 +154,6 @@ import styles from './web-component-styles.css?inline';
                 </div>
             `;
             
-            // Add progress bar
-            html += `
-                <div class="yukicat-bas-progress">
-                    <div class="yukicat-bas-progress-bar"></div>
-                </div>
-            `;
-            
             // Add indicators for multiple images
             if (this.config.showLabels && this.config.images.length > 2) {
                 html += '<div class="yukicat-bas-indicators">';

@@ -49,7 +49,6 @@
             this.layers = Array.from(this.container.querySelectorAll('.yukicat-bas-layer'));
             this.handle = this.container.querySelector('.yukicat-bas-handle');
             this.handleButton = this.container.querySelector('.yukicat-bas-handle-button');
-            this.progressBar = this.container.querySelector('.yukicat-bas-progress-bar');
             this.indicators = Array.from(this.container.querySelectorAll('.yukicat-bas-indicator'));
             this.totalImages = this.layers.length;
             this.animationFrame = null;
@@ -411,21 +410,17 @@
 
         updateSlider() {
             // 先检查必要的元素是否存在
-            if (!this.handle || !this.progressBar) {
-                throw new Error('YukiCatSlider: Required elements (handle or progressBar) not found');
+            if (!this.handle) {
+                throw new Error('YukiCatSlider: Required element (handle) not found');
             }
             
             // 根据方向更新滑块位置
             if (this.options && this.options.orientation === 'horizontal') {
                 this.handle.style.left = this.currentPosition + '%';
                 this.handle.style.top = '';
-                this.progressBar.style.width = this.currentPosition + '%';
-                this.progressBar.style.height = '';
             } else {
                 this.handle.style.top = this.currentPosition + '%';
                 this.handle.style.left = '';
-                this.progressBar.style.height = this.currentPosition + '%';
-                this.progressBar.style.width = '';
             }
             
             // 更新图片裁剪
