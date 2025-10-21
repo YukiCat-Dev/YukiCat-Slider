@@ -10,7 +10,6 @@ export default defineConfig({
     lib: {
       entry: {
         'frontend': './src/frontend.js',
-        'web-component': './src/web-component.js',
         'admin': './src/admin.js',
         'block': './src/block.js'
       },

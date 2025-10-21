@@ -2,6 +2,9 @@
  * 雪猫 Before&After Slider - 前端脚本 (无jQuery依赖)
  */
 
+// Import web component
+import './web-component.js';
+
 (function() {
     'use strict';
     
