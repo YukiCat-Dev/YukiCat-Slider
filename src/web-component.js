@@ -4,6 +4,7 @@
  */
 
 import styles from './web-component-styles.css?inline';
+import { YukiCatSlider, getData, setData } from './frontend.js';
 
 (function() {
     'use strict';
@@ -154,13 +155,6 @@ import styles from './web-component-styles.css?inline';
                 </div>
             `;
             
-            // Add progress bar
-            html += `
-                <div class="yukicat-bas-progress">
-                    <div class="yukicat-bas-progress-bar"></div>
-                </div>
-            `;
-            
             // Add indicators for multiple images
             if (this.config.showLabels && this.config.images.length > 2) {
                 html += '<div class="yukicat-bas-indicators">';
@@ -178,35 +172,24 @@ import styles from './web-component-styles.css?inline';
         
         // Initialize slider with YukiCatSlider class
         initializeSlider() {
-            // Wait for YukiCatSlider to be available
-            const initSlider = () => {
-                if (window.YukiCatSlider && window.jQuery) {
-                    const $ = window.jQuery;
-                    const container = this.shadowRoot.querySelector('.yukicat-bas-container');
-                    if (container) {
-                        // Clean up old instance
-                        if (this.sliderInstance && typeof this.sliderInstance.destroy === 'function') {
-                            this.sliderInstance.destroy();
-                        }
-                        
-                        // Create new instance with shadow DOM support
-                        // Pass the jQuery-wrapped container and shadow root
-                        this.sliderInstance = new window.YukiCatSlider($(container), {
-                            shadowRoot: this.shadowRoot,
-                            orientation: this.config.orientation,
-                            autoSlide: this.config.autoSlide,
-                            moveWithHandleOnly: this.config.handleOnly,
-                            moveSliderOnHover: this.config.hoverMove,
-                            clickToMove: this.config.clickMove
-                        });
-                    }
-                } else {
-                    // Retry after a short delay
-                    setTimeout(initSlider, 100);
+            const container = this.shadowRoot.querySelector('.yukicat-bas-container');
+            if (container) {
+                // Clean up old instance
+                if (this.sliderInstance && typeof this.sliderInstance.destroy === 'function') {
+                    this.sliderInstance.destroy();
                 }
-            };
-            
-            initSlider();
+                
+                // Create new instance with shadow DOM support
+                // YukiCatSlider is imported directly, no need to wait for window.YukiCatSlider
+                this.sliderInstance = new YukiCatSlider(container, {
+                    shadowRoot: this.shadowRoot,
+                    orientation: this.config.orientation,
+                    autoSlide: this.config.autoSlide,
+                    moveWithHandleOnly: this.config.handleOnly,
+                    moveSliderOnHover: this.config.hoverMove,
+                    clickToMove: this.config.clickMove
+                });
+            }
         }
         
         // Get CSS styles (imported and will be minified by Vite)
@@ -218,5 +201,11 @@ import styles from './web-component-styles.css?inline';
     // Register the custom element
     if (!customElements.get('yukicat-slider')) {
         customElements.define('yukicat-slider', YukiCatSliderElement);
+    }
+    
+    // 为 block.js 提供向后兼容性（仅在 Gutenberg 编辑器中需要）
+    // 导出到 window 供编辑器使用
+    if (typeof window !== 'undefined') {
+        window.YukiCatSlider = YukiCatSlider;
     }
 })();

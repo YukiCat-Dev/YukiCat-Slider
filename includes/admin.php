@@ -88,17 +88,8 @@ class Admin {
             wp_enqueue_media();
             wp_enqueue_style('yukicat-bas-admin', YUKICAT_BAS_PLUGIN_URL . 'assets/css/admin.css', array(), YUKICAT_BAS_VERSION);
             
-        // 总是加载CSS
-        wp_enqueue_style('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/css/frontend.css', array(), YUKICAT_BAS_VERSION);
-        
-        // 加载 Web Component (depends on frontend.js for YukiCatSlider class)
-        wp_enqueue_script('yukicat-bas-frontend', YUKICAT_BAS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), YUKICAT_BAS_VERSION, true);
-        
-        // Web component must load after frontend.js
-        wp_enqueue_script('yukicat-bas-web-component', YUKICAT_BAS_PLUGIN_URL . 'assets/js/web-component.js', array('yukicat-bas-frontend'), YUKICAT_BAS_VERSION, true);
-        
-        // 加载初始化脚本
-        wp_enqueue_script('yukicat-bas-init', YUKICAT_BAS_PLUGIN_URL . 'assets/js/init.js', array('yukicat-bas-web-component'), YUKICAT_BAS_VERSION, true);
+            // 复用 Frontend 类的公开方法加载前端依赖
+            \YukiCat\BeforeAfterSlider\Frontend::enqueue_frontend_assets();
    
             wp_enqueue_script('yukicat-bas-admin', YUKICAT_BAS_PLUGIN_URL . 'assets/js/admin.js', array('jquery', 'media-upload', 'yukicat-bas-frontend'), YUKICAT_BAS_VERSION, true);
             
