@@ -1,25 +1,20 @@
 /**
  * 雪猫 Before&After Slider - 前端脚本 (无jQuery依赖)
+ * YukiCatSlider 核心类 - 用于 web component
  */
 
-// Import web component
-import './web-component.js';
+// 辅助函数：获取/设置 data 属性
+function getData(element, key) {
+    const dataKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    return element.dataset[dataKey];
+}
 
-(function() {
-    'use strict';
-    
-    // 辅助函数：获取/设置 data 属性
-    function getData(element, key) {
-        const dataKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-        return element.dataset[dataKey];
-    }
-    
-    function setData(element, key, value) {
-        const dataKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-        element.dataset[dataKey] = value;
-    }
+function setData(element, key, value) {
+    const dataKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    element.dataset[dataKey] = value;
+}
 
-    class YukiCatSlider {
+class YukiCatSlider {
         constructor(element, options) {
             if (!element) {
                 return;
@@ -646,81 +641,5 @@ import './web-component.js';
         }
     }
 
-    // 自动初始化函数
-    function initSliders() {
-        try {
-            const containers = document.querySelectorAll('.yukicat-bas-container:not([data-yukicat-slider-initialized="true"])');
-            
-            containers.forEach(container => {
-                // 检查是否已经初始化过（双重检查）
-                if (getData(container, 'yukicat-slider-initialized') === 'true') {
-                    return;
-                }
-                
-                // 确保容器有一个唯一ID
-                if (!getData(container, 'slider-id')) {
-                    setData(container, 'slider-id', 'yukicat-slider-' + Math.random().toString(36).substr(2, 9));
-                }
-                
-                // 确保图片已加载
-                const images = container.querySelectorAll('img');
-                images.forEach(img => {
-                    if (img.complete) {
-                        img.classList.add('loaded');
-                    } else {
-                        img.addEventListener('load', function() {
-                            this.classList.add('loaded');
-                        });
-                        
-                        img.addEventListener('error', function() {
-                            this.classList.add('error');
-                            this.style.backgroundColor = '#f0f0f0';
-                            this.style.visibility = 'visible';
-                        });
-                    }
-                });
-                
-                try {
-                    // 创建新实例
-                    const slider = new YukiCatSlider(container);
-                    if (slider) {
-                        setData(container, 'yukicat-slider', 'initialized');
-                        container.classList.add('initialized');
-                    }
-                } catch (e) {
-                    // 静默处理单个滑块的错误
-                }
-            });
-        } catch (e) {
-            // 静默处理整个初始化过程的错误
-        }
-    }
-
-    // 页面加载完成后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            initSliders();
-        });
-    } else {
-        initSliders();
-    }
-
-    // 监听窗口加载完成事件（用于捕获延迟加载的图片）
-    window.addEventListener('load', function() {
-        initSliders();
-    });
-    
-    // WordPress特定事件钩子（当jQuery可用时）
-    // 这些是WordPress主题和插件常用的事件，用于处理AJAX内容加载
-    if (window.jQuery) {
-        const $ = window.jQuery;
-        // 监听WordPress和WooCommerce的动态内容事件
-        $(document).on('post-load updated_checkout updated_cart_totals after_ajax_form_submit rendered_block', function() {
-            initSliders();
-        });
-    }
-
-    // 全局API
-    window.YukiCatSlider = YukiCatSlider;
-
-})();
+// 导出 YukiCatSlider 类供 web-component 使用
+export { YukiCatSlider, getData, setData };
