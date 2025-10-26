@@ -9,7 +9,7 @@ export default defineConfig({
     // Only build ES modules
     lib: {
       entry: {
-        'frontend': './src/web-component.js',
+        'frontend': './src/frontend.js',
         'admin': './src/admin.js',
         'block': './src/block.js'
       },
