@@ -10,8 +10,6 @@ export default defineConfig({
     lib: {
       entry: {
         'frontend': './src/frontend.js',
-        'web-component': './src/web-component.js',
-        'init': './src/init.js',
         'admin': './src/admin.js',
         'block': './src/block.js'
       },
@@ -28,8 +26,7 @@ export default defineConfig({
     // Output to assets directory
     outDir: './assets/js',
     emptyOutDir: false,
-    // Don't generate sourcemaps in production
-    sourcemap: false,
+    sourcemap: true,
     rollupOptions: {
       // Externalize jQuery since it's provided by WordPress
       external: ['jquery'],
